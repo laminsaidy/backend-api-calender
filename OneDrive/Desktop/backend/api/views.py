@@ -10,6 +10,7 @@ from rest_framework import status
 from rest_framework.decorators import permission_classes
 
 
+
 # Custom token view with MyTokenObtainPairSerializer
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
