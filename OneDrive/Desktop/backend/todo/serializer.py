@@ -1,4 +1,4 @@
-from api.models import User, Profile
+from todo.models import User, Profile  # Change 'api.models' to 'todo.models'
 from django.contrib.auth.password_validation import validate_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
@@ -44,7 +44,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         user = User.objects.create(
             username=validated_data['username'],
             email=validated_data['email']
-
         )
 
         user.set_password(validated_data['password'])
