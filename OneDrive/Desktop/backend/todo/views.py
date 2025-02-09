@@ -10,7 +10,7 @@ from rest_framework import status
 from rest_framework.decorators import permission_classes
 from rest_framework import viewsets
 
-
+# Viewset for handling CRUD operations on Todo model
 class TodoView(viewsets.ModelViewSet):       
     serializer_class = TodoSerializer          
     queryset = Todo.objects.all()   
