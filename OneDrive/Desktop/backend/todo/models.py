@@ -32,14 +32,11 @@ def create_user_profile(sender, instance, created, **kwargs):
         Profile.objects.get_or_create(user=instance)  # Ensure no duplicate Profiles are created
 
 
-from django.db import models
-
-
+# Todo model
 class Todo(models.Model):
     title = models.CharField(max_length=120)
     description = models.TextField()
-    # completed property is the status of the task, and we will set the default to False.
     completed = models.BooleanField(default=False)
 
-    def _str_(self):
+    def __str__(self):
         return self.title
