@@ -34,9 +34,15 @@ def create_user_profile(sender, instance, created, **kwargs):
 
 # Todo model
 class Todo(models.Model):
+    STATUS_CHOICES = [
+        ("Open", "Open"),
+        ("In Progress", "In Progress"),
+        ("Done", "Done"),
+    ]
+    
     title = models.CharField(max_length=120)
     description = models.TextField()
-    completed = models.BooleanField(default=False)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Open")  # New field replacing completed
 
     def __str__(self):
         return self.title

@@ -13,7 +13,8 @@ from rest_framework import viewsets
 # Viewset for handling CRUD operations on Todo model
 class TodoView(viewsets.ModelViewSet):       
     serializer_class = TodoSerializer          
-    queryset = Todo.objects.all()   
+    queryset = Todo.objects.all().order_by('-id')  # Ensure tasks are ordered
+   
 
 
 

@@ -5,9 +5,10 @@ from .models import Todo  # Importing the Todo model
 
 
 # Customizing the admin interface for Todo model
-class TodoAdmin(admin.ModelAdmin):  
+class TodoAdmin(admin.ModelAdmin):
     # Display fields in the list view of the Todo model
-    list_display = ('title', 'description', 'completed')  
+    list_display = ('title', 'description', 'status')  # Change 'completed' to 'status'
+ 
 
 
 # Registering the Todo model with the customized TodoAdmin

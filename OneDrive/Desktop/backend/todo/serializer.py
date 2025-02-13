@@ -9,7 +9,8 @@ from .models import Todo
 class TodoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Todo
-        fields = ('id', 'title', 'description', 'completed')
+        fields = ('id', 'title', 'description', 'status')  # Change 'completed' to 'status'
+
 
 # Serializer for User model
 class UserSerializer(serializers.ModelSerializer):
