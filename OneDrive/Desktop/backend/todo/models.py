@@ -41,14 +41,6 @@ class Todo(models.Model):
         ('Medium', 'Medium'),
         ('High', 'High'),
     ]
-    
-    CATEGORY_CHOICES = [
-        ('Work', 'Work'),
-        ('Personal', 'Personal'),
-        ('Health', 'Health'),
-        ('Finance', 'Finance'),
-        ('Other', 'Other'),
-    ]
 
     STATUS_CHOICES = [
         ('Open', 'Open'),
@@ -60,7 +52,7 @@ class Todo(models.Model):
     description = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Open')
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='Medium')
-    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='Other')
+    category = models.CharField(max_length=20, blank=True, null=True)  # Allow any category
     due_date = models.DateField(null=True, blank=True)
 
     def is_overdue(self):

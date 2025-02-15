@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import Todo
+from rest_framework import serializers
 
 # Get the custom User model
 User = get_user_model()
@@ -33,6 +34,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 # Todo Serializer
+
 class TodoSerializer(serializers.ModelSerializer):
     overdue = serializers.SerializerMethodField()
 
@@ -44,7 +46,7 @@ class TodoSerializer(serializers.ModelSerializer):
         return obj.is_overdue()
 
     def validate_category(self, value):
-        # Ensure category is a string, not an array
+        # Allow any category as long as it's a string
         if isinstance(value, list):
-            return value[0]  # Convert array to string
+            return value[0]  # Convert array to string (if needed)
         return value
