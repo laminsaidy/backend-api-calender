@@ -3,6 +3,8 @@ from django.dispatch import receiver
 from django.db.models.signals import post_save
 from django.contrib.auth.models import AbstractUser
 
+from django.utils.timezone import now
+
 # Custom User model
 class User(AbstractUser):
     email = models.EmailField(unique=True)
@@ -34,15 +36,38 @@ def create_user_profile(sender, instance, created, **kwargs):
 
 # Todo model
 class Todo(models.Model):
-    STATUS_CHOICES = [
-        ("Open", "Open"),
-        ("In Progress", "In Progress"),
-        ("Done", "Done"),
+    PRIORITY_CHOICES = [
+        ('Low', 'Low'),
+        ('Medium', 'Medium'),
+        ('High', 'High'),
     ]
     
-    title = models.CharField(max_length=120)
-    description = models.TextField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Open")  # New field replacing completed
+    CATEGORY_CHOICES = [
+        ('Work', 'Work'),
+        ('Personal', 'Personal'),
+        ('Health', 'Health'),
+        ('Finance', 'Finance'),
+        ('Other', 'Other'),
+    ]
+
+    STATUS_CHOICES = [
+        ('Open', 'Open'),
+        ('In Progress', 'In Progress'),
+        ('Done', 'Done'),
+    ]
+
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Open')
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='Medium')
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='Other')
+    due_date = models.DateField(null=True, blank=True)
+
+    def is_overdue(self):
+        """Check if the task is overdue"""
+        if self.due_date and self.status != 'Done' and self.due_date < now().date():
+            return True
+        return False
 
     def __str__(self):
         return self.title

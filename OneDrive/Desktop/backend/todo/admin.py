@@ -1,13 +1,12 @@
 from django.contrib import admin
-from todo.models import User, Profile  # Importing User and Profile models from the todo app
+from todo.models import User, Profile  
 
-from .models import Todo  # Importing the Todo model
+from .models import Todo  
 
 
 # Customizing the admin interface for Todo model
 class TodoAdmin(admin.ModelAdmin):
-    # Display fields in the list view of the Todo model
-    list_display = ('title', 'description', 'status')  # Change 'completed' to 'status'
+    list_display = ('title', 'description', 'status')  
  
 
 
@@ -23,9 +22,7 @@ class UserAdmin(admin.ModelAdmin):
 
 # Customizing the admin interface for Profile model
 class ProfileAdmin(admin.ModelAdmin):
-    # Display user, full name, and verified status in the list view of Profile model
     list_display = ['user', 'full_name', 'verified']  
-    # Allow editing the verified status directly in the list view
     list_editable = ['verified', ]  
 
 

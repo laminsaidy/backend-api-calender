@@ -1,66 +1,50 @@
-from todo.models import User, Profile  # Change 'api.models' to 'todo.models'
-from django.contrib.auth.password_validation import validate_password
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
-
+from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import Todo
 
-# Serializer for Todo model
-class TodoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Todo
-        fields = ('id', 'title', 'description', 'status')  # Change 'completed' to 'status'
+# Get the custom User model
+User = get_user_model()
 
-
-# Serializer for User model
+# User Serializer
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'username', 'email')
+        fields = ['id', 'email', 'username']
 
-# Custom token serializer for adding extra claims to JWT token
+# Custom Token Serializer for JWT
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        
-        # These are claims, you can add custom claims
-        token['full_name'] = user.profile.full_name
-        token['username'] = user.username
-        token['email'] = user.email
-        token['bio'] = user.profile.bio
-        token['image'] = str(user.profile.image)
-        token['verified'] = user.profile.verified
-        # ...
+        token['email'] = user.email  
         return token
 
-# Serializer for user registration, including password confirmation
+# Register Serializer for User Sign Up
 class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(
-        write_only=True, required=True, validators=[validate_password])
-    password2 = serializers.CharField(write_only=True, required=True)
+    password = serializers.CharField(write_only=True)
 
     class Meta:
         model = User
-        fields = ('email', 'username', 'password', 'password2')
+        fields = ['id', 'email', 'username', 'password']
 
-    # Custom validation to check if passwords match
-    def validate(self, attrs):
-        if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError(
-                {"password": "Password fields didn't match."})
-
-        return attrs
-    
-    # Create new user after validation
     def create(self, validated_data):
-        user = User.objects.create(
-            username=validated_data['username'],
-            email=validated_data['email']
-        )
-
-        # Set password securely
-        user.set_password(validated_data['password'])
-        user.save()
-
+        user = User.objects.create_user(**validated_data)
         return user
+
+# Todo Serializer
+class TodoSerializer(serializers.ModelSerializer):
+    overdue = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Todo
+        fields = ('id', 'title', 'description', 'status', 'priority', 'category', 'due_date', 'overdue')
+
+    def get_overdue(self, obj):
+        return obj.is_overdue()
+
+    def validate_category(self, value):
+        # Ensure category is a string, not an array
+        if isinstance(value, list):
+            return value[0]  # Convert array to string
+        return value

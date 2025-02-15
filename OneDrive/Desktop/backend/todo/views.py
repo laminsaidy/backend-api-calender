@@ -1,21 +1,35 @@
 from django.shortcuts import render
-from todo.models import Profile, User, Todo  # Import Todo model
-from todo.serializer import UserSerializer, MyTokenObtainPairSerializer, RegisterSerializer, TodoSerializer  # Import TodoSerializer
+from django.utils.timezone import now
+from todo.models import Profile, User, Todo  
+from todo.serializer import UserSerializer, MyTokenObtainPairSerializer, RegisterSerializer, TodoSerializer  
 from rest_framework.decorators import api_view
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework import generics
+from rest_framework import generics, status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
 from rest_framework.decorators import permission_classes
-from rest_framework import viewsets
 
 # Viewset for handling CRUD operations on Todo model
 class TodoView(viewsets.ModelViewSet):       
-    serializer_class = TodoSerializer          
-    queryset = Todo.objects.all().order_by('-id')  # Ensure tasks are ordered
-   
+    serializer_class = TodoSerializer
+    queryset = Todo.objects.all().order_by('-due_date')
 
+    def get_queryset(self):
+        """Filter tasks based on query parameters (status, priority, category)."""
+        queryset = Todo.objects.all().order_by('-due_date')
+
+        status_filter = self.request.query_params.get('status', None)
+        priority_filter = self.request.query_params.get('priority', None)
+        category_filter = self.request.query_params.get('category', None)
+
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        if priority_filter:
+            queryset = queryset.filter(priority=priority_filter)
+        if category_filter:
+            queryset = queryset.filter(category=category_filter)
+
+        return queryset
 
 
 # Custom token view with MyTokenObtainPairSerializer
@@ -47,6 +61,7 @@ class RegisterView(generics.CreateAPIView):
 @api_view(['GET'])
 def getRoutes(request):
     routes = [
+        '/api/tasks/',  # Tasks endpoint
         '/api/token/',
         '/api/register/',
         '/api/token/refresh/',
@@ -54,10 +69,10 @@ def getRoutes(request):
     return Response(routes)
 
 
-# Dashboard View
+# Task Manager View
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def dashboard(request):
+def taskManager(request):
     user = request.user
     try:
         profile = user.profile  # Assuming a one-to-one relationship between User and Profile
