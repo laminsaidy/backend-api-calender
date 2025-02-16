@@ -8,6 +8,9 @@ from rest_framework import generics, status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import permission_classes
+from django.shortcuts import get_object_or_404
+
+from rest_framework.generics import RetrieveAPIView
 
 # Viewset for handling CRUD operations on Todo model
 class TodoView(viewsets.ModelViewSet):       
@@ -104,3 +107,12 @@ def testEndPoint(request):
         data = f"Congratulations, your API just responded to a POST request with text: {text}"
         return Response({'response': data}, status=status.HTTP_200_OK)
     return Response({}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_task(request, task_id):
+    """Retrieve a single task by ID"""
+    task = get_object_or_404(Todo, id=task_id)  # Use Todo model
+    serializer = TodoSerializer(task)  # Use TodoSerializer
+    return Response(serializer.data, status=status.HTTP_200_OK)
