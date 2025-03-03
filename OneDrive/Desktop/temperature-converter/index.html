@@ -9,21 +9,19 @@
   <body>
     <form>
       <h1>Temperature conversion:</h1>
-      <input type="number" id="textBox" value="0"><br>
+      <input type="number" id="textBox" value="0" /><br />
 
-      <input type="radio" id="toFahrenheit" name="unit">
-      <label for="toFahrenheit">Celsius => Fahrenheit</label><br>
+      <input type="radio" id="toFahrenheit" name="unit" />
+      <label for="toFahrenheit">Celsius => Fahrenheit</label><br />
 
-      <input type="radio" id="toCelsius" name="unit">
-      <label for="toCelsius">Fahrenheit => Celsius</label><br>
+      <input type="radio" id="toCelsius" name="unit" />
+      <label for="toCelsius">Fahrenheit => Celsius</label><br />
 
       <button type="button" onClick="convert()">submit</button>
 
-      <p id="result">Select a unit</p>
+      <p id="result"></p>
     </form>
 
-    <script>
-      src = "index.js";
-    </script>
+    <script src="index.js"></script>
   </body>
 </html>
