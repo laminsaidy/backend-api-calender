@@ -12,7 +12,7 @@ SECRET_KEY = os.environ['SECRET_KEY']  # No fallback in production
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [
-    'your-backend-service-name.onrender.com',  # Replace with your Render URL
+    'backend-api-calender.onrender.com',  # Replace with your Render URL
     'localhost',
     '127.0.0.1',
 ]
@@ -126,7 +126,7 @@ SIMPLE_JWT = {
 # CORS
 # ======
 CORS_ALLOWED_ORIGINS = [
-    "https://your-frontend-service-name.onrender.com",
+    "https://my-calender-project.onrender.com",
     "http://localhost:3000",  
 ]
 
