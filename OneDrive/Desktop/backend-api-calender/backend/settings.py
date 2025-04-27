@@ -1,5 +1,5 @@
 import os
-import dj_database_url  
+import dj_database_url
 from pathlib import Path
 from datetime import timedelta
 
@@ -12,7 +12,7 @@ SECRET_KEY = os.environ['SECRET_KEY']  # No fallback in production
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [
-    'backend-api.onrender.com',  # Replace with your Render URL
+    'backend-api-calender.onrender.com',  # Replace with your Render URL without 'https://'
     'localhost',
     '127.0.0.1',
 ]
@@ -36,7 +36,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', 
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -127,7 +127,7 @@ SIMPLE_JWT = {
 # ======
 CORS_ALLOWED_ORIGINS = [
     "https://my-calender-project.onrender.com",
-    "http://localhost:3000",  
+    "http://localhost:3000",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
