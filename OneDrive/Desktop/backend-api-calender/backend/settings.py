@@ -8,11 +8,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ======================
 # SECURITY CONFIGURATION
 # ======================
-SECRET_KEY = os.environ['SECRET_KEY']  # No fallback in production
+SECRET_KEY = os.environ.get('SECRET_KEY', 'dummy-key-for-dev-only')
+if not DEBUG and SECRET_KEY == 'dummy-key-for-dev-only':
+    raise ValueError("Missing SECRET_KEY in production!")
+
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [
-    'backend-api-calender.onrender.com',  # Replace with your Render URL without 'https://'
+    'backend-api-calender.onrender.com',
     'localhost',
     '127.0.0.1',
 ]
@@ -37,6 +40,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'django.middleware.gzip.GZipMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -71,9 +75,18 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': dj_database_url.config(
         default=os.environ.get('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True
+        conn_max_age=60 if os.environ.get('RENDER') else 600,
+        ssl_require=not DEBUG
     )
+}
+
+# =============
+# STORAGES
+# =============
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
 }
 
 # ===================
@@ -99,9 +112,12 @@ USE_TZ = True
 # =============
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# ================
+# CUSTOM USER MODEL
+# ================
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+AUTH_USER_MODEL = 'todo.User'
 
 # ===================
 # REST FRAMEWORK & JWT
@@ -129,13 +145,13 @@ CORS_ALLOWED_ORIGINS = [
     "https://my-calender-project.onrender.com",
     "http://localhost:3000",
 ]
-
 CORS_ALLOW_CREDENTIALS = True
 
-# ================
-# CUSTOM USER MODEL
-# ================
-AUTH_USER_MODEL = 'todo.User'
+if not DEBUG:
+    CSRF_TRUSTED_ORIGINS = [
+        'https://backend-api-calender.onrender.com',
+        'https://my-calender-project.onrender.com'
+    ]
 
 # ======================
 # PRODUCTION SECURITY
@@ -150,4 +166,22 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_BROWSER_XSS_FILTER = True
+    SECURE_REFERRER_POLICY = "same-origin"
     X_FRAME_OPTIONS = 'DENY'
+
+# =========
+# LOGGING
+# =========
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+}
