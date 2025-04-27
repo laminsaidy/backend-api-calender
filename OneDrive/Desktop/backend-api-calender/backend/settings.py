@@ -12,7 +12,7 @@ SECRET_KEY = os.environ['SECRET_KEY']  # No fallback in production
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [
-    'backend-api-calender.onrender.com',  # Replace with your Render URL
+    'backend-api.onrender.com',  # Replace with your Render URL
     'localhost',
     '127.0.0.1',
 ]
