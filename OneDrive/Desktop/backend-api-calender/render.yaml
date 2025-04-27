@@ -1,6 +1,15 @@
 services:
   - type: web
-    name: backend
+    name: backend-api-calender
     env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn backend-api-calendar.wsgi:application
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py migrate
+    startCommand: gunicorn backend.wsgi:application --timeout 120 --workers 3
+    envVars:
+      - key: DISABLE_COLLECTSTATIC
+        value: 1
+      - key: DATABASE_URL
+        fromDatabase:
+          name: my-calender-project
+          property: connectionString
