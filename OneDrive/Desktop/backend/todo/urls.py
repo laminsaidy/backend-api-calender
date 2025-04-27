@@ -9,9 +9,7 @@ router.register(r'tasks', views.TodoView, 'task')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/tasks/summary/', views.task_summary, name='task_summary'),  
-    path('api/tasks/add/', views.add_task, name='add_task'),  
-    path('api/tasks/statistics/', views.view_statistics, name='view_statistics'),  
+    path('api/tasks/add/', views.add_task, name='add_task'),
     path('api/', include(router.urls)),
     path('api/token/', views.MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

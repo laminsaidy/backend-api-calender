@@ -1,7 +1,5 @@
-from django.shortcuts import render
-from django.utils.timezone import now
 from todo.models import Profile, User, Todo
-from todo.serializer import UserSerializer, MyTokenObtainPairSerializer, RegisterSerializer, TodoSerializer
+from todo.serializer import MyTokenObtainPairSerializer, RegisterSerializer, TodoSerializer
 from rest_framework.decorators import api_view
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import generics, status, viewsets
@@ -9,7 +7,6 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import permission_classes
 from django.shortcuts import get_object_or_404
-from rest_framework.generics import RetrieveAPIView
 
 # Viewset for handling CRUD operations on Todo model
 class TodoView(viewsets.ModelViewSet):
@@ -46,7 +43,7 @@ class RegisterView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save() 
+        user = serializer.save()
 
         # Ensure a Profile is created for the new User
         Profile.objects.get_or_create(user=user)
@@ -60,13 +57,11 @@ class RegisterView(generics.CreateAPIView):
 @api_view(['GET'])
 def getRoutes(request):
     routes = [
-        '/api/tasks/',  
+        '/api/tasks/',
         '/api/token/',
         '/api/register/',
         '/api/token/refresh/',
-        '/api/tasks/summary/',  
-        '/api/tasks/add/',  
-        '/api/tasks/statistics/',  
+        '/api/tasks/add/',
     ]
     return Response(routes)
 
@@ -76,7 +71,7 @@ def getRoutes(request):
 def taskManager(request):
     user = request.user
     try:
-        profile = user.profile 
+        profile = user.profile
         data = {
             "username": user.username,
             "email": user.email,
@@ -109,23 +104,9 @@ def testEndPoint(request):
 @permission_classes([IsAuthenticated])
 def get_task(request, task_id):
     """Retrieve a single task by ID"""
-    task = get_object_or_404(Todo, id=task_id)  
-    serializer = TodoSerializer(task) 
+    task = get_object_or_404(Todo, id=task_id)
+    serializer = TodoSerializer(task)
     return Response(serializer.data, status=status.HTTP_200_OK)
-
-# Task Summary View
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def task_summary(request):
-    tasks = Todo.objects.all()
-    summary = {
-        'open': tasks.filter(status='Open').count(),
-        'inProgress': tasks.filter(status='In Progress').count(),
-        'done': tasks.filter(status='Done').count(),
-    }
-    recent_tasks = tasks.order_by('-created_at')[:5]
-    recent_tasks_serializer = TodoSerializer(recent_tasks, many=True)
-    return Response({'summary': summary, 'recentTasks': recent_tasks_serializer.data})
 
 # Add Task View
 @api_view(['POST'])
@@ -136,16 +117,3 @@ def add_task(request):
         serializer.save(user=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-# View Statistics View
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def view_statistics(request):
-    tasks = Todo.objects.all()
-    statistics = {
-        'total_tasks': tasks.count(),
-        'open_tasks': tasks.filter(status='Open').count(),
-        'in_progress_tasks': tasks.filter(status='In Progress').count(),
-        'done_tasks': tasks.filter(status='Done').count(),
-    }
-    return Response(statistics, status=status.HTTP_200_OK)
