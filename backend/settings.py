@@ -2,23 +2,70 @@ import os
 import dj_database_url
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ======================
-# SECURITY CONFIGURATION
+# CORE CONFIGURATION
 # ======================
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 SECRET_KEY = os.environ.get('SECRET_KEY', 'dummy-key-for-dev-only')
+
 if not DEBUG and SECRET_KEY == 'dummy-key-for-dev-only':
     raise ValueError("Missing SECRET_KEY in production!")
 
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
-
 ALLOWED_HOSTS = [
-    'backend-api-calender.onrender.com',
-    'my-calender-project.onrender.com',
     'localhost',
     '127.0.0.1',
+    'backend-api-calender.onrender.com',
+    'my-calender-project.onrender.com',
+]
+
+# ======================
+# SECURITY CONFIGURATION
+# ======================
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+# ======================
+# CORS & CSRF CONFIG
+# ======================
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "https://my-calender-project.onrender.com",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'https://backend-api-calender.onrender.com',
+    'https://my-calender-project.onrender.com'
+]
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
 ]
 
 # =================
@@ -33,9 +80,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'todo',
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
+    'todo',
 ]
 
 MIDDLEWARE = [
@@ -48,7 +95,9 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
 
 ROOT_URLCONF = 'backend.urls'
 
@@ -76,8 +125,8 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': dj_database_url.config(
         default=os.environ.get('DATABASE_URL'),
-        conn_max_age=60 if os.environ.get('RENDER') else 600,
-        ssl_require=not DEBUG
+        conn_max_age=600,
+        ssl_require=True
     )
 }
 
@@ -138,37 +187,6 @@ SIMPLE_JWT = {
     'SIGNING_KEY': SECRET_KEY,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
-
-# ======
-# CORS
-# ======
-CORS_ALLOWED_ORIGINS = [
-    "https://my-calender-project.onrender.com",
-    "http://localhost:3000",
-]
-CORS_ALLOW_CREDENTIALS = True
-
-if not DEBUG:
-    CSRF_TRUSTED_ORIGINS = [
-        'https://backend-api-calender.onrender.com',
-        'https://my-calender-project.onrender.com'
-    ]
-
-# ======================
-# PRODUCTION SECURITY
-# ======================
-if not DEBUG:
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_HSTS_SECONDS = 3600
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_REFERRER_POLICY = "same-origin"
-    X_FRAME_OPTIONS = 'DENY'
 
 # =========
 # LOGGING
