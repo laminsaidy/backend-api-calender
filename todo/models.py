@@ -1,11 +1,7 @@
 from django.db import models
-from django.dispatch import receiver
-from django.db.models.signals import post_save
 from django.contrib.auth.models import AbstractUser
-
 from django.utils.timezone import now
 
-# Custom User model
 class User(AbstractUser):
     email = models.EmailField(unique=True)
     USERNAME_FIELD = 'email'
@@ -14,52 +10,58 @@ class User(AbstractUser):
     def __str__(self):
         return self.email
 
-
-# Profile model
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    full_name = models.CharField(max_length=1000)
-    bio = models.CharField(max_length=500)  # Increased max_length for more flexibility
-    image = models.ImageField(upload_to="user_images", default="default.jpg")
+    full_name = models.CharField(max_length=100, blank=True)
+    bio = models.TextField(max_length=500, blank=True)
+    image = models.ImageField(upload_to="user_images/", default="default.jpg")
     verified = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.full_name
+        return f"{self.user.username}'s Profile"
 
+# Automatically create profile when user is created
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
-# Signal to automatically create a Profile for new Users
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
-        Profile.objects.get_or_create(user=instance)  # Ensure no duplicate Profiles are created
+        Profile.objects.create(user=instance)
 
-
-# Todo model
 class Todo(models.Model):
     PRIORITY_CHOICES = [
-        ('Low', 'Low'),
-        ('Medium', 'Medium'),
-        ('High', 'High'),
+        ('L', 'Low'),
+        ('M', 'Medium'),
+        ('H', 'High'),
     ]
-
+    
     STATUS_CHOICES = [
-        ('Open', 'Open'),
-        ('In Progress', 'In Progress'),
-        ('Done', 'Done'),
+        ('O', 'Open'),
+        ('P', 'In Progress'),
+        ('D', 'Done'),
     ]
 
-    title = models.CharField(max_length=255)
-    description = models.TextField(blank=True, null=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Open')
-    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='Medium')
-    category = models.CharField(max_length=20, blank=True, null=True)  # Allow any category
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default='O')
+    priority = models.CharField(max_length=1, choices=PRIORITY_CHOICES, default='M')
+    category = models.CharField(max_length=30, blank=True)
     due_date = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-due_date']
 
     def is_overdue(self):
-        """Check if the task is overdue"""
-        if self.due_date and self.status != 'Done' and self.due_date < now().date():
-            return True
-        return False
+        """Check if task is past due date and not completed"""
+        return (
+            self.due_date 
+            and self.status != 'D' 
+            and self.due_date < now().date()
+        )
 
     def __str__(self):
-        return self.title
+        return f"{self.title} ({self.get_status_display()})"
