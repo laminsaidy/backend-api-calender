@@ -1,80 +1,32 @@
 import os
-import dj_database_url
 from pathlib import Path
 from datetime import timedelta
-from dotenv import load_dotenv
+import dj_database_url
 
-load_dotenv()
-
+# BASE DIR
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ======================
-# CORE CONFIGURATION
-# ======================
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
-SECRET_KEY = os.environ.get('SECRET_KEY', 'dummy-key-for-dev-only')
+# DEBUG & SECRET KEY
+DEBUG = True
+SECRET_KEY = 'dev-secret-key'
 
-if not DEBUG and SECRET_KEY == 'dummy-key-for-dev-only':
-    raise ValueError("Missing SECRET_KEY in production!")
+# HOSTS
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    'backend-api-calender.onrender.com',
-    'my-calender-project.onrender.com',
-]
-
-# ======================
-# SECURITY CONFIGURATION
-# ======================
-if not DEBUG:
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-else:
-    SECURE_SSL_REDIRECT = False
-    SESSION_COOKIE_SECURE = False
-    CSRF_COOKIE_SECURE = False
-
-# ======================
-# CORS & CSRF CONFIG
-# ======================
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "https://my-calender-project.onrender.com",
-]
-
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:3000',
-    'https://backend-api-calender.onrender.com',
-    'https://my-calender-project.onrender.com'
-]
-
+# CORS & CSRF
+CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
+CSRF_TRUSTED_ORIGINS = ["http://localhost:3000"]
 CORS_ALLOW_CREDENTIALS = True
+
 CORS_ALLOW_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
+    'DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT',
 ]
 CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
+    'accept', 'accept-encoding', 'authorization', 'content-type',
+    'dnt', 'origin', 'user-agent', 'x-csrftoken', 'x-requested-with',
 ]
 
-# =================
-# APPLICATION CONFIG
-# =================
+# INSTALLED APPS
 INSTALLED_APPS = [
     'corsheaders',
     'jazzmin',
@@ -89,12 +41,11 @@ INSTALLED_APPS = [
     'todo',
 ]
 
+# MIDDLEWARE
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    'django.middleware.gzip.GZipMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -104,6 +55,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'backend.urls'
 
+# TEMPLATES
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -122,65 +74,31 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-# =============
-# DATABASE
-# =============
+# DATABASE (SQLite for dev, or override with DATABASE_URL)
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
+        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
         conn_max_age=600,
-        ssl_require=True
+        ssl_require=False
     )
 }
 
-# =============
-# STORAGES
-# =============
-STORAGES = {
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
-}
-
-# ===================
-# PASSWORD VALIDATION
-# ===================
-AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
-]
-
-# ================
-# INTERNATIONALIZATION
-# ================
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
-USE_I18N = True
-USE_TZ = True
-
-# =============
 # STATIC FILES
-# =============
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# ================
-# CUSTOM USER MODEL
-# ================
+# AUTH & USER MODEL
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'todo.User'
 
-# ===================
-# REST FRAMEWORK & JWT
-# ===================
+# REST FRAMEWORK
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
 }
 
+# SIMPLE JWT
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=50),
@@ -191,19 +109,15 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# =========
-# LOGGING
-# =========
+# LOGGING (Minimal for dev)
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
+        'console': {'class': 'logging.StreamHandler'},
     },
     'root': {
         'handlers': ['console'],
-        'level': 'WARNING',
+        'level': 'DEBUG',
     },
 }
