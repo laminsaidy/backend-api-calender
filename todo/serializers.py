@@ -12,7 +12,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer(read_only=True)
-    
+
     class Meta:
         model = User
         fields = ['id', 'email', 'username', 'profile']
@@ -21,11 +21,13 @@ class UserSerializer(serializers.ModelSerializer):
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
-        refresh = self.get_token(self.user)
-        
+
+        # Store user on serializer for views to access
+        self.user = self.user
+
+        # Only include user data in response (not tokens)
+        data.clear()
         data.update({
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
             'user': UserSerializer(self.user).data
         })
         return data
@@ -33,7 +35,6 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        # Add custom claims
         token['email'] = user.email
         token['username'] = user.username
         return token
@@ -61,7 +62,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         if data['password'] != data['password2']:
-            raise serializers.ValidationError({"password": "Password fields didn't match."})
+            raise serializers.ValidationError({"password": "Passwords do not match."})
         return data
 
     def create(self, validated_data):
@@ -76,12 +77,12 @@ class RegisterSerializer(serializers.ModelSerializer):
 class TodoSerializer(serializers.ModelSerializer):
     overdue = serializers.SerializerMethodField()
     user = UserSerializer(read_only=True)
-    
+
     class Meta:
         model = Todo
         fields = [
-            'id', 'title', 'description', 'status', 
-            'priority', 'category', 'due_date', 
+            'id', 'title', 'description', 'status',
+            'priority', 'category', 'due_date',
             'overdue', 'user', 'created_at'
         ]
         read_only_fields = ['created_at', 'user']
