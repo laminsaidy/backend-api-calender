@@ -7,6 +7,7 @@ from rest_framework_simplejwt.views import (
     TokenVerifyView
 )
 from todo import views
+from django.http import HttpResponse
 
 # Create a router and register views
 router = routers.DefaultRouter()
@@ -19,10 +20,14 @@ api_patterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('register/', views.RegisterView.as_view(), name='auth_register'),
-    path('', include('todo.urls')),  # Include todo app URLs
+    path('', include('todo.urls')), 
 ]
+
+def home(request):
+    return HttpResponse("Welcome to the API!")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include((api_patterns, 'api'), namespace='api')),
+    path('', home, name='home'),  
 ]
