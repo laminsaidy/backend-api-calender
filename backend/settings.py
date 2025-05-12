@@ -7,15 +7,15 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # DEBUG & SECRET KEY
-DEBUG = True
-SECRET_KEY = 'dev-secret-key'
+DEBUG = True  # Set to False in production
+SECRET_KEY = 'dev-secret-key'  # Use a strong, random key in production
 
 # HOSTS
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # CORS & CSRF
-CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
-CSRF_TRUSTED_ORIGINS = ["http://localhost:3000"]
+CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]  # Add all relevant origins
+CSRF_TRUSTED_ORIGINS = ["http://localhost:3000"]  # Match with CORS_ALLOWED_ORIGINS
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_METHODS = [
@@ -45,7 +45,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # Must be placed before CommonMiddleware
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -121,3 +121,20 @@ LOGGING = {
         'level': 'DEBUG',
     },
 }
+
+# Security Enhancements
+SECURE_REFERRER_POLICY = "same-origin"
+
+# Add to your existing settings.py
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
+# Disable CSRF for API views since we're using JWT
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False

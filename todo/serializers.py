@@ -75,24 +75,19 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 class TodoSerializer(serializers.ModelSerializer):
-    overdue = serializers.SerializerMethodField()
-    user = UserSerializer(read_only=True)
-
     class Meta:
         model = Todo
-        fields = [
-            'id', 'title', 'description', 'status',
-            'priority', 'category', 'due_date',
-            'overdue', 'user', 'created_at'
-        ]
-        read_only_fields = ['created_at', 'user']
+        fields = ['id', 'title', 'description', 'status', 'priority', 'category', 'due_date', 'user']
+        extra_kwargs = {
+            'title': {'required': True},
+            'user': {'read_only': True},
+            'status': {'required': True},
+            'priority': {'required': True}
+        }
 
-    def get_overdue(self, obj):
-        return obj.is_overdue()
-
-    def validate_category(self, value):
-        if isinstance(value, list):
-            return value[0]
+    def validate_status(self, value):
+        if value not in dict(Todo.STATUS_CHOICES).keys():
+            raise serializers.ValidationError("Invalid status value")
         return value
 
     def validate_priority(self, value):
