@@ -211,22 +211,19 @@ class TodoViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-    @action(detail=False, methods=['post'])
-    def bulk_create(self, request):
-        try:
-            serializer = self.get_serializer(data=request.data, many=True)
-            serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer)
-            return Response(
-                serializer.data, 
-                status=status.HTTP_201_CREATED
-            )
-        except Exception as e:
-            logger.error(f"Bulk create error: {str(e)}")
-            return Response(
-                {"detail": str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+    @action(detail=True, methods=['patch'])
+    def update_status(self, request, pk=None):
+        task = self.get_object()  # Get the task by primary key
+        status = request.data.get('status')  # Expecting status to be passed in the request data
+        
+        # Validate and update status
+        if status not in ['O', 'P', 'D', 'C']:
+            return Response({'detail': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+
+        task.status = status
+        task.save()
+
+        return Response(TodoSerializer(task).data, status=status.HTTP_200_OK)
 
 # -----------------------
 # USER PROFILE VIEW
