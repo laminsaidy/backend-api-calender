@@ -75,22 +75,34 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 class TodoSerializer(serializers.ModelSerializer):
+    status = serializers.CharField(required=False, default='O')
+    priority = serializers.CharField(required=False, default='M')
+
     class Meta:
         model = Todo
         fields = ['id', 'title', 'description', 'status', 'priority', 'category', 'due_date', 'user']
         extra_kwargs = {
             'title': {'required': True},
-            'user': {'read_only': True},
-            'status': {'required': True},
-            'priority': {'required': True}
+            'user': {'read_only': True}
         }
 
     def validate_status(self, value):
-        if value not in dict(Todo.STATUS_CHOICES).keys():
-            raise serializers.ValidationError("Invalid status value")
-        return value
+        # Accept both full words and single letters
+        status_map = {
+            'open': 'O', 'o': 'O',
+            'in progress': 'P', 'p': 'P',
+            'done': 'D', 'd': 'D',
+            'cancelled': 'C', 'c': 'C'
+        }
+        if value not in status_map.values():
+            raise serializers.ValidationError("Invalid status")
+        return status_map.get(value.lower(), value)
 
     def validate_priority(self, value):
-        if value not in dict(Todo.PRIORITY_CHOICES).keys():
-            raise serializers.ValidationError("Invalid priority value")
-        return value
+        # Accept both full words and single letters
+        priority_map = {
+            'low': 'L', 'l': 'L',
+            'medium': 'M', 'm': 'M',
+            'high': 'H', 'h': 'H'
+        }
+        return priority_map.get(value.lower(), value)

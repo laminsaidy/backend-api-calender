@@ -1,5 +1,3 @@
-# Main Urls.py
-
 from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse
@@ -19,6 +17,6 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('api/register/', views.RegisterView.as_view(), name='auth_register'),
-    path('api/', include('todo.urls')),  
-    path('', home, name='home'),  
+    path('api/', include('todo.urls')),
+    path('', home, name='home'),
 ]

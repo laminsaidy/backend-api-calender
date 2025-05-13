@@ -14,8 +14,8 @@ SECRET_KEY = 'dev-secret-key'  # Use a strong, random key in production
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # CORS & CSRF
-CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]  # Add all relevant origins
-CSRF_TRUSTED_ORIGINS = ["http://localhost:3000"]  # Match with CORS_ALLOWED_ORIGINS
+CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]  # Add all relevant origins
+CSRF_TRUSTED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]  # Match with CORS_ALLOWED_ORIGINS
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_METHODS = [
@@ -96,6 +96,9 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
 }
 
 # SIMPLE JWT
@@ -124,16 +127,6 @@ LOGGING = {
 
 # Security Enhancements
 SECURE_REFERRER_POLICY = "same-origin"
-
-# Add to your existing settings.py
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-}
 
 # Disable CSRF for API views since we're using JWT
 CSRF_COOKIE_SECURE = False
