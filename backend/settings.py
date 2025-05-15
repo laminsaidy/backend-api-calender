@@ -20,7 +20,7 @@ if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 ALLOWED_HOSTS.append("calendar-frontend.onrender.com")  # replace with actual frontend domain
-
+ALLOWED_HOSTS.append("calendar-backend-gpkd.onrender.com")
 
 
 # CORS & CSRF
@@ -160,6 +160,9 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://calendar-frontend.onrender.com"
+    "https://calendar-backend-gpkd.onrender.com",
+
 ]
+
 
 
