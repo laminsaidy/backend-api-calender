@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # DEBUG & SECRET KEY
 DEBUG = False  # Set to False in production
-SECRET_KEY = 'dev-secret-key'  # Use a strong, random key in production
+SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key')
 
 # HOSTS
 ALLOWED_HOSTS = []
@@ -18,6 +18,9 @@ import os
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+ALLOWED_HOSTS.append("calendar-frontend.onrender.com")  # replace with actual frontend domain
+
 
 
 # CORS & CSRF
