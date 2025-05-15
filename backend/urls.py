@@ -6,10 +6,24 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView
 )
-from todo import views  # Add this import
+from todo import views
+from django.contrib.auth.models import User 
 
 def home(request):
     return HttpResponse("Welcome to the API!")
+
+# NEW: temporary superuser creation function
+def create_superuser(request):
+    # Check if a superuser already exists
+    if not User.objects.filter(is_superuser=True).exists():
+        # CREATE YOUR SUPERUSER 
+        User.objects.create_superuser(
+            username='admin',              
+            email='nimalydias@gmail.com',      
+            password='734862@Naasir'         
+        )
+        return HttpResponse("Superuser created successfully! Please remove this endpoint immediately.")
+    return HttpResponse("Superuser already exists. No action taken.")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -19,4 +33,5 @@ urlpatterns = [
     path('api/register/', views.RegisterView.as_view(), name='auth_register'),
     path('api/', include('todo.urls')),
     path('', home, name='home'),
+    path('temp-admin-create-123/', create_superuser, name='temp_admin_create'),
 ]
