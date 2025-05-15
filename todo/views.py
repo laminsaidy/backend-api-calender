@@ -258,17 +258,3 @@ def get_routes(request):
     ]
     return Response(routes)
 
-from django.contrib.auth.models import User
-from django.http import HttpResponse
-
-def create_superuser(request):
-    # Check if a superuser already exists
-    if not User.objects.filter(is_superuser=True).exists():
-        # Create superuser - CHANGE THESE DETAILS!
-        User.objects.create_superuser(
-            username='admin', 
-            email='admin@example.com', 
-            password='your_secure_password_123'
-        )
-        return HttpResponse("Superuser created successfully!")
-    return HttpResponse("Superuser already exists!")

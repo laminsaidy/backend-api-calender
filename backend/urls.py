@@ -7,27 +7,9 @@ from rest_framework_simplejwt.views import (
     TokenVerifyView
 )
 from todo import views
-from django.contrib.auth import get_user_model  # CHANGED: Use this instead
 
 def home(request):
     return HttpResponse("Welcome to the API!")
-
-# UPDATED SUPERUSER CREATION FUNCTION
-def create_superuser(request):
-    try:
-        User = get_user_model()  # Gets your custom User model
-        
-        if not User.objects.filter(is_superuser=True).exists():
-            User.objects.create_superuser(
-                username='admin',
-                email='temp@example.com',  # Change this
-                password='TempPass123!'     # Change this
-            )
-            return HttpResponse("Superuser created successfully! Please remove this endpoint immediately.")
-        return HttpResponse("Superuser already exists.")
-        
-    except Exception as e:
-        return HttpResponse(f"Error: {str(e)}", status=500)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -37,5 +19,4 @@ urlpatterns = [
     path('api/register/', views.RegisterView.as_view(), name='auth_register'),
     path('api/', include('todo.urls')),
     path('', home, name='home'),
-    path('temp-admin-create-123/', create_superuser),  # Keep this obscure
 ]
