@@ -7,15 +7,21 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # DEBUG & SECRET KEY
-DEBUG = True  # Set to False in production
+DEBUG = False  # Set to False in production
 SECRET_KEY = 'dev-secret-key'  # Use a strong, random key in production
 
 # HOSTS
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = []
+
+import os
+
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
 
 # CORS & CSRF
 CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]  # Add all relevant origins
-CSRF_TRUSTED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]  # Match with CORS_ALLOWED_ORIGINS
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_METHODS = [
@@ -75,17 +81,24 @@ TEMPLATES = [
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 # DATABASE (SQLite for dev, or override with DATABASE_URL)
+import dj_database_url
+
 DATABASES = {
     'default': dj_database_url.config(
-        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
+        default=os.environ.get('DATABASE_URL'),
         conn_max_age=600,
-        ssl_require=False
+        ssl_require=True
     )
 }
+
 
 # STATIC FILES
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 
 # AUTH & USER MODEL
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -131,3 +144,10 @@ SECURE_REFERRER_POLICY = "same-origin"
 # Disable CSRF for API views since we're using JWT
 CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = False
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://your-backend-service-name.onrender.com"
+]
+
