@@ -24,6 +24,12 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 DEBUG = settings.DEBUG
 
+def add_cors_headers(response):
+    """Helper function to add CORS headers to responses"""
+    response["Access-Control-Allow-Origin"] = "https://react-frontend-oldu.onrender.com"
+    response["Access-Control-Allow-Credentials"] = "true"
+    return response
+
 # -----------------------
 # CSRF TOKEN VIEW
 # -----------------------
@@ -31,7 +37,8 @@ DEBUG = settings.DEBUG
 @ensure_csrf_cookie
 @permission_classes([AllowAny])
 def get_csrf_token(request):
-    return Response({'message': 'CSRF cookie set'})
+    response = Response({'message': 'CSRF cookie set'})
+    return add_cors_headers(response)
 
 # -----------------------
 # LOGIN VIEW (COOKIE BASED)
@@ -75,13 +82,14 @@ class MyTokenObtainPairView(APIView):
                 max_age=3600 * 24 * 7  # 7 days
             )
 
-            return response
+            return add_cors_headers(response)
         except Exception as e:
             logger.error(f"Login error: {str(e)}")
-            return Response(
+            response = Response(
                 {"detail": "Invalid credentials"}, 
                 status=status.HTTP_401_UNAUTHORIZED
             )
+            return add_cors_headers(response)
 
 # -----------------------
 # LOGOUT VIEW (COOKIE CLEAR)
@@ -90,16 +98,17 @@ class MyTokenObtainPairView(APIView):
 @permission_classes([AllowAny])
 def logout_view(request):
     try:
-        response = Response({"message": "Logged out successfully"})
+        response = JsonResponse({"message": "Logged out successfully"})
         response.delete_cookie('access')
         response.delete_cookie('refresh')
-        return response
+        return add_cors_headers(response)
     except Exception as e:
         logger.error(f"Logout error: {str(e)}")
-        return Response(
+        response = Response(
             {"detail": "Logout failed"}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+        return add_cors_headers(response)
 
 # -----------------------
 # REGISTER VIEW
@@ -120,7 +129,7 @@ class RegisterView(generics.CreateAPIView):
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
 
-            response_data = {
+            response = JsonResponse({
                 'user': {
                     'id': user.id,
                     'username': user.username,
@@ -129,9 +138,7 @@ class RegisterView(generics.CreateAPIView):
                 'message': 'User registered successfully',
                 'access': access_token,
                 'refresh': str(refresh)
-            }
-
-            response = JsonResponse(response_data, status=status.HTTP_201_CREATED)
+            }, status=status.HTTP_201_CREATED)
             
             # Set cookies for the new user
             response.set_cookie(
@@ -151,13 +158,14 @@ class RegisterView(generics.CreateAPIView):
                 max_age=3600 * 24 * 7
             )
             
-            return response
+            return add_cors_headers(response)
         except Exception as e:
             logger.error(f"Registration error: {str(e)}")
-            return Response(
+            response = Response(
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+            return add_cors_headers(response)
 
 # -----------------------
 # TASK VIEWSET (IMPROVED)
@@ -196,34 +204,36 @@ class TodoViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer)
             headers = self.get_success_headers(serializer.data)
-            return Response(
+            response = Response(
                 serializer.data, 
                 status=status.HTTP_201_CREATED, 
                 headers=headers
             )
+            return add_cors_headers(response)
         except Exception as e:
             logger.error(f"Task creation error: {str(e)}")
-            return Response(
+            response = Response(
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+            return add_cors_headers(response)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
     @action(detail=True, methods=['patch'])
     def update_status(self, request, pk=None):
-        task = self.get_object()  # Get the task by primary key
-        status = request.data.get('status')  # Expecting status to be passed in the request data
+        task = self.get_object()
+        status = request.data.get('status')
         
-        # Validate and update status
         if status not in ['O', 'P', 'D', 'C']:
-            return Response({'detail': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+            response = Response({'detail': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+            return add_cors_headers(response)
 
         task.status = status
         task.save()
-
-        return Response(TodoSerializer(task).data, status=status.HTTP_200_OK)
+        response = Response(TodoSerializer(task).data, status=status.HTTP_200_OK)
+        return add_cors_headers(response)
 
 # -----------------------
 # USER PROFILE VIEW
@@ -234,13 +244,15 @@ def get_user_profile(request):
     try:
         profile = get_object_or_404(Profile, user=request.user)
         serializer = UserProfileSerializer(profile)
-        return Response(serializer.data)
+        response = Response(serializer.data)
+        return add_cors_headers(response)
     except Exception as e:
         logger.error(f"Profile fetch error: {str(e)}")
-        return Response(
+        response = Response(
             {"detail": "Error fetching profile"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+        return add_cors_headers(response)
 
 # -----------------------
 # ROUTES VIEW (FOR DEBUGGING)
@@ -256,5 +268,5 @@ def get_routes(request):
         {'endpoint': '/api/logout/', 'methods': 'POST'},
         {'endpoint': '/api/profile/', 'methods': 'GET'},
     ]
-    return Response(routes)
-
+    response = Response(routes)
+    return add_cors_headers(response)

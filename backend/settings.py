@@ -27,7 +27,8 @@ ALLOWED_HOSTS.append("calendar-backend-gpkd.onrender.com")
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://calendar-frontend.onrender.com"  # replace with your actual frontend Render URL
+    "https://react-frontend-oldu.onrender.com",  
+    "https://calendar-frontend.onrender.com"    
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -159,10 +160,14 @@ CSRF_COOKIE_HTTPONLY = False
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://calendar-frontend.onrender.com"
+    "https://react-frontend-oldu.onrender.com",  
     "https://calendar-backend-gpkd.onrender.com",
-
 ]
 
 
-
+# Security settings for cross-origin requests
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True
+CORS_ALLOW_CREDENTIALS = True
