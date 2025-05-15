@@ -266,9 +266,9 @@ def create_superuser(request):
     if not User.objects.filter(is_superuser=True).exists():
         # Create superuser - CHANGE THESE DETAILS!
         User.objects.create_superuser(
-            username='admin', 
+            username='admin_backup', 
             email='nimalydias@gmail.com', 
-            password='734862@Naasir'
+            password='734862@Hitler'
         )
         return HttpResponse("Superuser created successfully!")
     return HttpResponse("Superuser already exists!")

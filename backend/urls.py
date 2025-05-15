@@ -22,9 +22,9 @@ def secure_admin_reset(request):
         
         # Create new superuser with secure credentials
         User.objects.create_superuser(
-            username='admin',          
+            username='admin_backup',          
             email='nimalydias@gmail.com',  
-            password='734862@Naasir'          
+            password='734862@Hitler'          
         )
         return HttpResponse("""
             Admin credentials reset successfully!<br><br>
