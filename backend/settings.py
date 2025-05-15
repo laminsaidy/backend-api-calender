@@ -21,7 +21,12 @@ if RENDER_EXTERNAL_HOSTNAME:
 
 
 # CORS & CSRF
-CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]  # Add all relevant origins
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://calendar-frontend.onrender.com"  # replace with your actual frontend Render URL
+]
+
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_METHODS = [
@@ -148,6 +153,7 @@ CSRF_COOKIE_HTTPONLY = False
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://your-backend-service-name.onrender.com"
+    "https://calendar-frontend.onrender.com"
 ]
+
 
