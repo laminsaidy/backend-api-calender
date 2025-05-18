@@ -13,7 +13,6 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key')
 # HOSTS
 ALLOWED_HOSTS = []
 
-import os
 
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
@@ -156,6 +155,7 @@ SECURE_REFERRER_POLICY = "same-origin"
 # Disable CSRF for API views since we're using JWT
 CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = False
+
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
