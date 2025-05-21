@@ -15,7 +15,7 @@ class User(AbstractUser):
     class Meta:
         verbose_name = 'User'
         verbose_name_plural = 'Users'
-
+        ordering = ['email']
 
 class Profile(models.Model):
     user = models.OneToOneField(
@@ -39,13 +39,11 @@ class Profile(models.Model):
         verbose_name = 'Profile'
         verbose_name_plural = 'Profiles'
 
-
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     """Signal to automatically create profile when user is created"""
     if created:
         Profile.objects.create(user=instance)
-
 
 class Todo(models.Model):
     PRIORITY_CHOICES = [
@@ -65,8 +63,6 @@ class Todo(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='todos',
-        null=True,  
-        blank=True, 
         help_text="The user this todo item belongs to"
     )
     title = models.CharField(
@@ -102,8 +98,7 @@ class Todo(models.Model):
         verbose_name='due date'
     )
     created_at = models.DateTimeField(
-        auto_now_add=True,
-        null=True, 
+        default=timezone.now,  # Updated to include a default value
         verbose_name='creation date'
     )
     updated_at = models.DateTimeField(
@@ -119,19 +114,29 @@ class Todo(models.Model):
             models.Index(fields=['due_date']),
             models.Index(fields=['status']),
             models.Index(fields=['priority']),
+            models.Index(fields=['user']),
         ]
 
-    def is_overdue(self):
+    @property
+    def status_display(self):
+        return self.get_status_display()
+
+    @property
+    def priority_display(self):
+        return self.get_priority_display()
+
+    @property
+    def overdue(self):
         """Check if task is past due date and not completed"""
         return (
-            self.due_date
-            and self.status in ['O', 'P']  # Only open/in-progress tasks can be overdue
-            and self.due_date < timezone.now().date()
+            self.due_date and
+            self.due_date < timezone.now().date() and
+            self.status in ['O', 'P']  # Only open/in-progress tasks can be overdue
         )
-
-    def __str__(self):
-        return f"{self.title} ({self.get_status_display()})"
 
     @property
     def is_completed(self):
         return self.status == 'D'
+
+    def __str__(self):
+        return f"{self.title} ({self.status_display})"

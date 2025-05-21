@@ -9,6 +9,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ['full_name', 'bio', 'image', 'verified']
+        read_only_fields = ['verified']
 
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer(read_only=True)
@@ -21,20 +22,17 @@ class UserSerializer(serializers.ModelSerializer):
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
-
-        # Store user on serializer for views to access
-        self.user = self.user
-
-        # Only include user data in response (not tokens)
-        data.clear()
-        data.update({
+        refresh = self.get_token(self.user)
+        
+        # Include only user data in response (tokens are in cookies)
+        return {
             'user': UserSerializer(self.user).data
-        })
-        return data
+        }
 
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
+        # Add custom claims
         token['email'] = user.email
         token['username'] = user.username
         return token
@@ -49,6 +47,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     )
     password2 = serializers.CharField(
         write_only=True,
+        required=True,
         style={'input_type': 'password'}
     )
 
@@ -66,43 +65,35 @@ class RegisterSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        validated_data.pop('password2')
         user = User.objects.create_user(
             email=validated_data['email'],
             username=validated_data['username'],
             password=validated_data['password']
         )
+        Profile.objects.create(user=user)
         return user
 
 class TodoSerializer(serializers.ModelSerializer):
-    status = serializers.CharField(required=False, default='O')
-    priority = serializers.CharField(required=False, default='M')
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    priority_display = serializers.CharField(source='get_priority_display', read_only=True)
+    overdue = serializers.BooleanField(read_only=True)
+    user = serializers.PrimaryKeyRelatedField(read_only=True)  # Explicit read-only
 
     class Meta:
         model = Todo
-        fields = ['id', 'title', 'description', 'status', 'priority', 'category', 'due_date', 'user']
-        extra_kwargs = {
-            'title': {'required': True},
-            'user': {'read_only': True}
-        }
+        fields = [
+            'id', 'title', 'description', 'status', 'status_display',
+            'priority', 'priority_display', 'category', 'due_date',
+            'created_at', 'updated_at', 'overdue', 'user'
+        ]
+        read_only_fields = ['user', 'created_at', 'updated_at', 'overdue']
 
     def validate_status(self, value):
-        # Accept both full words and single letters
-        status_map = {
-            'open': 'O', 'o': 'O',
-            'in progress': 'P', 'p': 'P',
-            'done': 'D', 'd': 'D',
-            'cancelled': 'C', 'c': 'C'
-        }
-        if value not in status_map.values():
-            raise serializers.ValidationError("Invalid status")
-        return status_map.get(value.lower(), value)
+        if value not in dict(Todo.STATUS_CHOICES).keys():
+            raise serializers.ValidationError("Invalid status value")
+        return value
 
     def validate_priority(self, value):
-        # Accept both full words and single letters
-        priority_map = {
-            'low': 'L', 'l': 'L',
-            'medium': 'M', 'm': 'M',
-            'high': 'H', 'h': 'H'
-        }
-        return priority_map.get(value.lower(), value)
+        if value not in dict(Todo.PRIORITY_CHOICES).keys():
+            raise serializers.ValidationError("Invalid priority value")
+        return value

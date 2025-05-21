@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.utils.decorators import method_decorator
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
@@ -19,32 +18,40 @@ from .serializers import (
     TodoSerializer,
     UserProfileSerializer
 )
+from .authentication import CookieJWTAuthentication  # Add this import
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
 DEBUG = settings.DEBUG
 
+# -----------------------
+# HELPER FUNCTIONS
+# -----------------------
 def add_cors_headers(response):
-    """Helper function to add CORS headers to responses"""
-    response["Access-Control-Allow-Origin"] = "https://react-frontend-oldu.onrender.com"
+    """Add CORS headers to responses"""
+    response["Access-Control-Allow-Origin"] = settings.FRONTEND_URL
+    response["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     response["Access-Control-Allow-Credentials"] = "true"
     return response
 
 # -----------------------
-# CSRF TOKEN VIEW
+# AUTHENTICATION VIEWS
 # -----------------------
 @api_view(['GET'])
 @ensure_csrf_cookie
 @permission_classes([AllowAny])
 def get_csrf_token(request):
+    """Endpoint to get CSRF token"""
     response = Response({'message': 'CSRF cookie set'})
     return add_cors_headers(response)
 
-# -----------------------
-# LOGIN VIEW (COOKIE BASED)
-# -----------------------
 class MyTokenObtainPairView(APIView):
+    """
+    Custom token obtain view that sets JWT in HttpOnly cookies
+    """
     permission_classes = [AllowAny]
+    authentication_classes = []  # Disable default authentication
 
     def post(self, request):
         try:
@@ -55,13 +62,12 @@ class MyTokenObtainPairView(APIView):
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
 
-            response = JsonResponse({
-                "message": "Login successful",
-                "user_id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "access": access_token,
-                "refresh": str(refresh)
+            response = Response({
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email
+                }
             })
 
             # Set secure HttpOnly cookies
@@ -71,7 +77,7 @@ class MyTokenObtainPairView(APIView):
                 httponly=True,
                 secure=not DEBUG,
                 samesite='None' if not DEBUG else 'Lax',
-                max_age=3600 * 24  # 1 day
+                max_age=24 * 3600  # 1 day
             )
             response.set_cookie(
                 key='refresh',
@@ -79,41 +85,30 @@ class MyTokenObtainPairView(APIView):
                 httponly=True,
                 secure=not DEBUG,
                 samesite='None' if not DEBUG else 'Lax',
-                max_age=3600 * 24 * 7  # 7 days
+                max_age=7 * 24 * 3600  # 7 days
             )
 
             return add_cors_headers(response)
         except Exception as e:
             logger.error(f"Login error: {str(e)}")
-            response = Response(
+            return Response(
                 {"detail": "Invalid credentials"}, 
                 status=status.HTTP_401_UNAUTHORIZED
             )
-            return add_cors_headers(response)
 
-# -----------------------
-# LOGOUT VIEW (COOKIE CLEAR)
-# -----------------------
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def logout_view(request):
-    try:
-        response = JsonResponse({"message": "Logged out successfully"})
-        response.delete_cookie('access')
-        response.delete_cookie('refresh')
-        return add_cors_headers(response)
-    except Exception as e:
-        logger.error(f"Logout error: {str(e)}")
-        response = Response(
-            {"detail": "Logout failed"}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-        return add_cors_headers(response)
+    """Endpoint to log out by clearing JWT cookies"""
+    response = Response({"message": "Successfully logged out"})
+    response.delete_cookie('access')
+    response.delete_cookie('refresh')
+    return add_cors_headers(response)
 
-# -----------------------
-# REGISTER VIEW
-# -----------------------
 class RegisterView(generics.CreateAPIView):
+    """
+    User registration endpoint
+    """
     queryset = User.objects.all()
     permission_classes = [AllowAny]
     serializer_class = RegisterSerializer
@@ -123,31 +118,28 @@ class RegisterView(generics.CreateAPIView):
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             user = serializer.save()
-            Profile.objects.get_or_create(user=user)
+            Profile.objects.create(user=user)
 
-            # Generate tokens for the new user
+            # Automatically log in the new user
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
 
-            response = JsonResponse({
+            response = Response({
                 'user': {
                     'id': user.id,
                     'username': user.username,
                     'email': user.email
-                },
-                'message': 'User registered successfully',
-                'access': access_token,
-                'refresh': str(refresh)
+                }
             }, status=status.HTTP_201_CREATED)
             
-            # Set cookies for the new user
+            # Set cookies
             response.set_cookie(
                 'access', 
                 access_token, 
                 httponly=True, 
                 secure=not DEBUG, 
                 samesite='None' if not DEBUG else 'Lax',
-                max_age=3600 * 24
+                max_age=24 * 3600
             )
             response.set_cookie(
                 'refresh', 
@@ -155,118 +147,87 @@ class RegisterView(generics.CreateAPIView):
                 httponly=True, 
                 secure=not DEBUG, 
                 samesite='None' if not DEBUG else 'Lax',
-                max_age=3600 * 24 * 7
+                max_age=7 * 24 * 3600
             )
             
             return add_cors_headers(response)
         except Exception as e:
             logger.error(f"Registration error: {str(e)}")
-            response = Response(
+            return Response(
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-            return add_cors_headers(response)
 
 # -----------------------
-# TASK VIEWSET (IMPROVED)
+# TODO VIEWS
 # -----------------------
 class TodoViewSet(viewsets.ModelViewSet):
+    """
+    Viewset for Todo CRUD operations with cookie-based authentication
+    """
     serializer_class = TodoSerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [CookieJWTAuthentication]
     ordering_fields = ['due_date', 'created_at', 'priority']
     filterset_fields = ['status', 'priority', 'category']
 
     def get_queryset(self):
-        try:
-            queryset = Todo.objects.filter(user=self.request.user)
-            
-            # Dynamic filtering
-            filters = {
-                'status': self.request.query_params.get('status'),
-                'priority': self.request.query_params.get('priority'),
-                'category': self.request.query_params.get('category')
-            }
-            
-            # Apply filters if provided
-            for field, value in filters.items():
-                if value:
-                    queryset = queryset.filter(**{field: value})
-
-            return queryset.order_by('-due_date')
-        except Exception as e:
-            logger.error(f"QuerySet error: {str(e)}")
-            return Todo.objects.none()
-
-    def create(self, request, *args, **kwargs):
-        try:
-            logger.debug(f"Creating task with data: {request.data}")
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer)
-            headers = self.get_success_headers(serializer.data)
-            response = Response(
-                serializer.data, 
-                status=status.HTTP_201_CREATED, 
-                headers=headers
-            )
-            return add_cors_headers(response)
-        except Exception as e:
-            logger.error(f"Task creation error: {str(e)}")
-            response = Response(
-                {"detail": str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            return add_cors_headers(response)
+        """Return only the authenticated user's todos"""
+        return Todo.objects.filter(user=self.request.user)\
+                         .order_by('-due_date', 'priority')
 
     def perform_create(self, serializer):
+        """Automatically set the current user when creating a todo"""
         serializer.save(user=self.request.user)
 
     @action(detail=True, methods=['patch'])
     def update_status(self, request, pk=None):
+        """Custom endpoint to update task status"""
         task = self.get_object()
-        status = request.data.get('status')
+        new_status = request.data.get('status')
         
-        if status not in ['O', 'P', 'D', 'C']:
-            response = Response({'detail': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
-            return add_cors_headers(response)
+        if new_status not in dict(Todo.STATUS_CHOICES).keys():
+            return Response(
+                {'detail': 'Invalid status'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        task.status = status
+        task.status = new_status
         task.save()
-        response = Response(TodoSerializer(task).data, status=status.HTTP_200_OK)
-        return add_cors_headers(response)
+        return Response(self.get_serializer(task).data)
 
 # -----------------------
-# USER PROFILE VIEW
+# PROFILE VIEW
 # -----------------------
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_user_profile(request):
+    """Endpoint to get current user's profile"""
     try:
-        profile = get_object_or_404(Profile, user=request.user)
+        profile = request.user.profile
         serializer = UserProfileSerializer(profile)
-        response = Response(serializer.data)
-        return add_cors_headers(response)
+        return Response(serializer.data)
     except Exception as e:
         logger.error(f"Profile fetch error: {str(e)}")
-        response = Response(
+        return Response(
             {"detail": "Error fetching profile"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-        return add_cors_headers(response)
 
 # -----------------------
-# ROUTES VIEW (FOR DEBUGGING)
+# DEBUG VIEWS
 # -----------------------
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def get_routes(request):
+    """Endpoint to list available API routes (for debugging)"""
     routes = [
-        {'endpoint': '/api/tasks/', 'methods': 'GET,POST,PUT,PATCH,DELETE'},
-        {'endpoint': '/api/token/', 'methods': 'POST'},
-        {'endpoint': '/api/token/refresh/', 'methods': 'POST'},
-        {'endpoint': '/api/register/', 'methods': 'POST'},
-        {'endpoint': '/api/csrf/', 'methods': 'GET'},
-        {'endpoint': '/api/logout/', 'methods': 'POST'},
-        {'endpoint': '/api/profile/', 'methods': 'GET'},
+        {'endpoint': '/api/token/', 'methods': 'POST', 'description': 'Login endpoint'},
+        {'endpoint': '/api/logout/', 'methods': 'POST', 'description': 'Logout endpoint'},
+        {'endpoint': '/api/register/', 'methods': 'POST', 'description': 'User registration'},
+        {'endpoint': '/api/todos/', 'methods': 'GET,POST', 'description': 'List/create todos'},
+        {'endpoint': '/api/todos/<id>/', 'methods': 'GET,PUT,PATCH,DELETE', 'description': 'Todo detail'},
+        {'endpoint': '/api/profile/', 'methods': 'GET', 'description': 'User profile'},
+        {'endpoint': '/api/csrf/', 'methods': 'GET', 'description': 'Get CSRF token'},
     ]
-    response = Response(routes)
-    return add_cors_headers(response)
+    return Response(routes)
