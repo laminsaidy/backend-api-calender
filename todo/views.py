@@ -2,23 +2,35 @@ from rest_framework import generics, status, viewsets
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.shortcuts import get_object_or_404
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, authenticate, login, logout
 from django.http import JsonResponse
 from django.conf import settings
 import logging
 
 from .models import Profile, Todo
 from .serializers import (
-    MyTokenObtainPairSerializer,
     RegisterSerializer,
     TodoSerializer,
-    UserProfileSerializer
+    UserProfileSerializer,
+    UserSerializer
 )
-from .authentication import CookieJWTAuthentication  # Add this import
+
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['email'] = user.email  # add custom claim if you want
+        return token
+
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
+
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -31,13 +43,14 @@ def add_cors_headers(response):
     """Add CORS headers to responses"""
     response["Access-Control-Allow-Origin"] = settings.FRONTEND_URL
     response["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-    response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-CSRFToken"
     response["Access-Control-Allow-Credentials"] = "true"
     return response
 
 # -----------------------
 # AUTHENTICATION VIEWS
 # -----------------------
+
 @api_view(['GET'])
 @ensure_csrf_cookie
 @permission_classes([AllowAny])
@@ -46,151 +59,79 @@ def get_csrf_token(request):
     response = Response({'message': 'CSRF cookie set'})
     return add_cors_headers(response)
 
-class MyTokenObtainPairView(APIView):
-    """
-    Custom token obtain view that sets JWT in HttpOnly cookies
-    """
-    permission_classes = [AllowAny]
-    authentication_classes = []  # Disable default authentication
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login_view(request):
+    """Session-based login"""
+    email = request.data.get('email')
+    password = request.data.get('password')
+    user = authenticate(request, email=email, password=password)
 
-    def post(self, request):
-        try:
-            serializer = MyTokenObtainPairSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            user = serializer.user
-
-            refresh = RefreshToken.for_user(user)
-            access_token = str(refresh.access_token)
-
-            response = Response({
-                "user": {
-                    "id": user.id,
-                    "username": user.username,
-                    "email": user.email
-                }
-            })
-
-            # Set secure HttpOnly cookies
-            response.set_cookie(
-                key='access',
-                value=access_token,
-                httponly=True,
-                secure=not DEBUG,
-                samesite='None' if not DEBUG else 'Lax',
-                max_age=24 * 3600  # 1 day
-            )
-            response.set_cookie(
-                key='refresh',
-                value=str(refresh),
-                httponly=True,
-                secure=not DEBUG,
-                samesite='None' if not DEBUG else 'Lax',
-                max_age=7 * 24 * 3600  # 7 days
-            )
-
-            return add_cors_headers(response)
-        except Exception as e:
-            logger.error(f"Login error: {str(e)}")
-            return Response(
-                {"detail": "Invalid credentials"}, 
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+    if user:
+        login(request, user)  # Django session login
+        logger.info("User logged in: %s", user.email)
+        return add_cors_headers(Response({
+            "message": "Logged in successfully",
+            "user": UserSerializer(user).data
+        }))
+    else:
+        logger.warning("Failed login attempt for email: %s", email)
+        return add_cors_headers(Response({
+            "detail": "Invalid credentials"
+        }, status=status.HTTP_401_UNAUTHORIZED))
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout_view(request):
-    """Endpoint to log out by clearing JWT cookies"""
+    """Session-based logout"""
+    logout(request)
+    logger.info("User logged out: %s", request.user)
     response = Response({"message": "Successfully logged out"})
-    response.delete_cookie('access')
-    response.delete_cookie('refresh')
+    response.delete_cookie('csrftoken')
     return add_cors_headers(response)
 
 class RegisterView(generics.CreateAPIView):
     """
-    User registration endpoint
+    User registration with session login
     """
     queryset = User.objects.all()
     permission_classes = [AllowAny]
     serializer_class = RegisterSerializer
 
     def create(self, request, *args, **kwargs):
-        try:
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            user = serializer.save()
-            Profile.objects.create(user=user)
-
-            # Automatically log in the new user
-            refresh = RefreshToken.for_user(user)
-            access_token = str(refresh.access_token)
-
-            response = Response({
-                'user': {
-                    'id': user.id,
-                    'username': user.username,
-                    'email': user.email
-                }
-            }, status=status.HTTP_201_CREATED)
-            
-            # Set cookies
-            response.set_cookie(
-                'access', 
-                access_token, 
-                httponly=True, 
-                secure=not DEBUG, 
-                samesite='None' if not DEBUG else 'Lax',
-                max_age=24 * 3600
-            )
-            response.set_cookie(
-                'refresh', 
-                str(refresh), 
-                httponly=True, 
-                secure=not DEBUG, 
-                samesite='None' if not DEBUG else 'Lax',
-                max_age=7 * 24 * 3600
-            )
-            
-            return add_cors_headers(response)
-        except Exception as e:
-            logger.error(f"Registration error: {str(e)}")
-            return Response(
-                {"detail": str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        Profile.objects.create(user=user)
+        login(request, user)  # auto-login using session
+        logger.info("User registered and logged in: %s", user.email)
+        return add_cors_headers(Response({
+            'user': UserSerializer(user).data,
+            'message': 'Registered and logged in'
+        }, status=status.HTTP_201_CREATED))
 
 # -----------------------
-# TODO VIEWS
+# TODO VIEWS (session-based auth)
 # -----------------------
 class TodoViewSet(viewsets.ModelViewSet):
-    """
-    Viewset for Todo CRUD operations with cookie-based authentication
-    """
     serializer_class = TodoSerializer
     permission_classes = [IsAuthenticated]
-    authentication_classes = [CookieJWTAuthentication]
     ordering_fields = ['due_date', 'created_at', 'priority']
     filterset_fields = ['status', 'priority', 'category']
 
     def get_queryset(self):
-        """Return only the authenticated user's todos"""
-        return Todo.objects.filter(user=self.request.user)\
-                         .order_by('-due_date', 'priority')
+        return Todo.objects.filter(user=self.request.user).order_by('-due_date', 'priority')
 
     def perform_create(self, serializer):
-        """Automatically set the current user when creating a todo"""
         serializer.save(user=self.request.user)
 
     @action(detail=True, methods=['patch'])
     def update_status(self, request, pk=None):
-        """Custom endpoint to update task status"""
         task = self.get_object()
         new_status = request.data.get('status')
-        
+
         if new_status not in dict(Todo.STATUS_CHOICES).keys():
-            return Response(
-                {'detail': 'Invalid status'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'detail': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
 
         task.status = new_status
         task.save()
@@ -202,32 +143,30 @@ class TodoViewSet(viewsets.ModelViewSet):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_user_profile(request):
-    """Endpoint to get current user's profile"""
     try:
         profile = request.user.profile
         serializer = UserProfileSerializer(profile)
         return Response(serializer.data)
     except Exception as e:
-        logger.error(f"Profile fetch error: {str(e)}")
+        logger.error(f"Profile fetch error: {str(e)}", exc_info=True)
         return Response(
             {"detail": "Error fetching profile"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
 # -----------------------
-# DEBUG VIEWS
+# DEBUG ROUTES
 # -----------------------
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_routes(request):
-    """Endpoint to list available API routes (for debugging)"""
     routes = [
-        {'endpoint': '/api/token/', 'methods': 'POST', 'description': 'Login endpoint'},
+        {'endpoint': '/api/csrf/', 'methods': 'GET', 'description': 'Get CSRF token'},
+        {'endpoint': '/api/login/', 'methods': 'POST', 'description': 'Login endpoint'},
         {'endpoint': '/api/logout/', 'methods': 'POST', 'description': 'Logout endpoint'},
         {'endpoint': '/api/register/', 'methods': 'POST', 'description': 'User registration'},
         {'endpoint': '/api/todos/', 'methods': 'GET,POST', 'description': 'List/create todos'},
         {'endpoint': '/api/todos/<id>/', 'methods': 'GET,PUT,PATCH,DELETE', 'description': 'Todo detail'},
         {'endpoint': '/api/profile/', 'methods': 'GET', 'description': 'User profile'},
-        {'endpoint': '/api/csrf/', 'methods': 'GET', 'description': 'Get CSRF token'},
     ]
     return Response(routes)
