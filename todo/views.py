@@ -1,5 +1,7 @@
 from django.shortcuts import render
 from django.utils.timezone import now
+from django.contrib.auth import get_user_model
+from django.http import HttpResponse
 from todo.models import Profile, User, Todo
 from todo.serializer import UserSerializer, MyTokenObtainPairSerializer, RegisterSerializer, TodoSerializer
 from rest_framework.decorators import api_view
@@ -10,6 +12,14 @@ from rest_framework.response import Response
 from rest_framework.decorators import permission_classes
 from django.shortcuts import get_object_or_404
 from rest_framework.generics import RetrieveAPIView
+
+# Temporary view to create an admin user
+def create_admin(request):
+    User = get_user_model()
+    if not User.objects.filter(username="admin").exists():
+        User.objects.create_superuser("admin", "admin@example.com", "adminpass123")
+        return HttpResponse("Superuser created.")
+    return HttpResponse("Superuser already exists.")
 
 # Viewset for handling CRUD operations on Todo model
 class TodoView(viewsets.ModelViewSet):

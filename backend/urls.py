@@ -4,6 +4,9 @@ from rest_framework import routers
 from todo import views
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+# Import the create_admin view
+from todo.views import create_admin
+
 router = routers.DefaultRouter()
 router.register(r'tasks', views.TodoView, 'task')
 
@@ -14,4 +17,9 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/register/', views.RegisterView.as_view(), name='auth_register'),
     path('api/routes/', views.getRoutes, name='api_routes'),
+]
+
+# temporary URL route
+urlpatterns += [
+    path('create-admin/', create_admin),
 ]
