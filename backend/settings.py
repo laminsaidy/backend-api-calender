@@ -7,12 +7,14 @@ from datetime import timedelta
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-i$+i6j)27s50w)8vm^f_3tsqj7i-*&t--6hx*w8_d41ob#vq*w')
+import os
+
+SECRET_KEY = os.environ.get("SECRET_KEY", "fallback-secret-key-for-dev")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['your-render-deployment-domain.onrender.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['calendar-backend.onrender.com', 'localhost', '127.0.0.1']
 
 # Application definition
 INSTALLED_APPS = [
