@@ -1,3 +1,4 @@
+from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils.timezone import now
 from django.contrib.auth import get_user_model
@@ -13,16 +14,20 @@ from rest_framework.decorators import permission_classes
 from django.shortcuts import get_object_or_404
 from rest_framework.generics import RetrieveAPIView
 
-# Updated create_admin view (simplified to use only email + password)
+# Updated create_admin view with error handling
 def create_admin(request):
-    User = get_user_model()
-    if not User.objects.filter(email="admin@example.com").exists():
-        User.objects.create_superuser(
-            email="admin@example.com",
-            password="StrongAdminPass456"
-        )
-        return HttpResponse("✅ Superuser created with email 'admin@example.com'")
-    return HttpResponse("ℹ️ Superuser already exists.")
+    try:
+        User = get_user_model()
+        if not User.objects.filter(email="admin@example.com").exists():
+            User.objects.create_superuser(
+                username="admin",  # Add username to avoid error if required
+                email="admin@example.com",
+                password="StrongAdminPass456"
+            )
+            return JsonResponse({"message": "✅ Superuser created with email 'admin@example.com'"})
+        return JsonResponse({"message": "ℹ️ Superuser already exists."})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 # Viewset for handling CRUD operations on Todo model
 class TodoView(viewsets.ModelViewSet):
