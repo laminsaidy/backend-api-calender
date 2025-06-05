@@ -20,7 +20,7 @@ def create_admin(request):
         User = get_user_model()
         if not User.objects.filter(email="admin@example.com").exists():
             User.objects.create_superuser(
-                username="admin",  # Add username to avoid error if required
+                username="admin",  # Added username as required by AbstractUser
                 email="admin@example.com",
                 password="StrongAdminPass456"
             )
