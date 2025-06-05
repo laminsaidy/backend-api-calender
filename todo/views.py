@@ -13,13 +13,16 @@ from rest_framework.decorators import permission_classes
 from django.shortcuts import get_object_or_404
 from rest_framework.generics import RetrieveAPIView
 
-# Temporary view to create an admin user
+# Updated create_admin view (simplified to use only email + password)
 def create_admin(request):
     User = get_user_model()
-    if not User.objects.filter(username="admin").exists():
-        User.objects.create_superuser("admin", "admin@example.com", "adminpass123")
-        return HttpResponse("Superuser created.")
-    return HttpResponse("Superuser already exists.")
+    if not User.objects.filter(email="admin@example.com").exists():
+        User.objects.create_superuser(
+            email="admin@example.com",
+            password="StrongAdminPass456"
+        )
+        return HttpResponse("✅ Superuser created with email 'admin@example.com'")
+    return HttpResponse("ℹ️ Superuser already exists.")
 
 # Viewset for handling CRUD operations on Todo model
 class TodoView(viewsets.ModelViewSet):
