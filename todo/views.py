@@ -45,28 +45,48 @@ class RegisterView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save() 
 
-        # Ensure a Profile is created for the new User
-        Profile.objects.get_or_create(user=user)
+        # Manually validate password confirmation
+        password = request.data.get('password')
+        password2 = request.data.get('password2')
 
-        headers = self.get_success_headers(serializer.data)
-        return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers
-        )
+        if password != password2:
+            return Response(
+                {"error": "Passwords do not match"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            serializer.is_valid(raise_exception=True)
+            user = serializer.save()
+
+            # Ensure a Profile is created for the new User
+            Profile.objects.get_or_create(user=user)
+
+            return Response(
+                {
+                    "message": "User registered successfully",
+                    "user": serializer.data
+                },
+                status=status.HTTP_201_CREATED
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 # List all available API routes
 @api_view(['GET'])
 def getRoutes(request):
     routes = [
-        '/api/tasks/',  
+        '/api/tasks/',
         '/api/token/',
         '/api/register/',
         '/api/token/refresh/',
-        '/api/tasks/summary/',  
-        '/api/tasks/add/',  
-        '/api/tasks/statistics/',  
+        '/api/tasks/summary/',
+        '/api/tasks/add/',
+        '/api/tasks/statistics/',
     ]
     return Response(routes)
 
@@ -76,7 +96,7 @@ def getRoutes(request):
 def taskManager(request):
     user = request.user
     try:
-        profile = user.profile 
+        profile = user.profile
         data = {
             "username": user.username,
             "email": user.email,
@@ -109,8 +129,8 @@ def testEndPoint(request):
 @permission_classes([IsAuthenticated])
 def get_task(request, task_id):
     """Retrieve a single task by ID"""
-    task = get_object_or_404(Todo, id=task_id)  
-    serializer = TodoSerializer(task) 
+    task = get_object_or_404(Todo, id=task_id)
+    serializer = TodoSerializer(task)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 # Task Summary View

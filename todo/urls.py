@@ -1,21 +1,12 @@
-from django.contrib import admin
-from rest_framework import routers
-from django.urls import path, include
+from django.urls import path
 from . import views
 from rest_framework_simplejwt.views import TokenRefreshView
 
-router = routers.DefaultRouter()
-router.register(r'tasks', views.TodoView, 'task')
-
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/tasks/summary/', views.task_summary, name='task_summary'),  
-    path('api/tasks/add/', views.add_task, name='add_task'),  
-    path('api/tasks/statistics/', views.view_statistics, name='view_statistics'),  
-    path('api/', include(router.urls)),
-    path('api/token/', views.MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/register/', views.RegisterView.as_view(), name='auth_register'),
-    path('api/test/', views.testEndPoint, name='test'),
-    path('', views.getRoutes),
+    path('tasks/summary/', views.task_summary, name='task_summary'),
+    path('tasks/add/', views.add_task, name='add_task'),
+    path('tasks/statistics/', views.view_statistics, name='view_statistics'),
+    path('', views.getRoutes, name='get_routes'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('test/', views.testEndPoint, name='test'),
 ]
