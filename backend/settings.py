@@ -15,9 +15,8 @@ DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
 # Render-specific settings
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 ALLOWED_HOSTS = [
-    'calendar-backend.onrender.com',
-    'calendar-frontend.onrender.com',
-    RENDER_EXTERNAL_HOSTNAME if RENDER_EXTERNAL_HOSTNAME else 'localhost'
+    'backend-api-calender.onrender.com',  # your backend URL
+    'frontend-yourapp.onrender.com',      # your frontend URL (replace with actual)
 ]
 
 # Database configuration for Render
