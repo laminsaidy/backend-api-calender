@@ -1,0 +1,21 @@
+# In a new migration file inside your todo/migrations folder
+
+from django.db import migrations
+
+def set_default_user(apps, schema_editor):
+    Todo = apps.get_model('todo', 'Todo')
+    User = apps.get_model('auth', 'User')
+    default_user = User.objects.first()  # or pick a specific user id
+
+    # Update all Todo objects with null user to default_user
+    Todo.objects.filter(user__isnull=True).update(user=default_user)
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('todo', 'previous_migration_name'),
+    ]
+
+    operations = [
+        migrations.RunPython(set_default_user),
+    ]

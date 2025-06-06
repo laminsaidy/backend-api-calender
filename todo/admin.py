@@ -29,8 +29,7 @@ class UserAdmin(BaseUserAdmin):
     search_fields = ('email', 'first_name', 'last_name')
     ordering = ('email',)
 
-# Registering the User model with the customized UserAdmin
-admin.site.register(User, UserAdmin)
+
 
 # Customizing the admin interface for Profile model
 class ProfileAdmin(admin.ModelAdmin):

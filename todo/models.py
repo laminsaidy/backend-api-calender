@@ -7,7 +7,7 @@ from django.dispatch import receiver
 User = get_user_model()
 
 class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile', null=True, blank=True)
     full_name = models.CharField(max_length=100, blank=True)
     bio = models.TextField(max_length=500, blank=True)
     image = models.ImageField(upload_to="user_images/", default="default.jpg", verbose_name='profile image')
@@ -38,7 +38,7 @@ class Todo(models.Model):
         ('Done', 'Done'),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='todos', help_text="The user this todo item belongs to")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='todos', help_text="The user this todo item belongs to", null=True, blank=True)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Open')
