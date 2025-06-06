@@ -21,15 +21,24 @@ class UserSerializer(serializers.ModelSerializer):
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
+        # Get the default token response (access + refresh)
         data = super().validate(attrs)
-        refresh = self.get_token(self.user)
-        return {
-            'user': UserSerializer(self.user).data
-        }
+        
+        # Add user data to the response
+        data['user'] = UserSerializer(self.user).data
+        
+        # Rename 'access' to 'token' for frontend compatibility
+        data['token'] = data.pop('access')
+        
+        # Remove refresh token if not needed by frontend
+        # data.pop('refresh', None)
+        
+        return data
 
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
+        # Add custom claims
         token['email'] = user.email
         token['username'] = user.username
         return token
@@ -67,7 +76,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             username=validated_data['username'],
             password=validated_data['password']
         )
-        # Removed the duplicate profile creation line
+        Profile.objects.get_or_create(user=user)  # Ensure profile is created
         return user
 
 class TodoSerializer(serializers.ModelSerializer):
