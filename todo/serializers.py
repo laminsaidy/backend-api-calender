@@ -67,7 +67,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             username=validated_data['username'],
             password=validated_data['password']
         )
-        Profile.objects.create(user=user)
+        # Removed the duplicate profile creation line
         return user
 
 class TodoSerializer(serializers.ModelSerializer):
