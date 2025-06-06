@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security settings
 SECRET_KEY = os.environ.get("SECRET_KEY", "fallback-secret-key-for-dev")
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
 # Hosts and origins
