@@ -12,13 +12,10 @@ def home(request):
 urlpatterns = [
     # Admin site
     path('admin/', admin.site.urls),
-    
+
     # Todo app endpoints
-    path('api/todos/', include('todo.urls')),
-    
-    # Authentication endpoints
-    path('api/token/', include('todo.urls')),  # This will catch token endpoints from todo/urls.py
-    
+    path('api/', include('todo.urls')),
+
     # Health check/root endpoint
     path('', home, name='home'),
 ]

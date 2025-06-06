@@ -15,6 +15,7 @@ from .serializers import (
     RegisterSerializer,
     TodoSerializer
 )
+from django.conf import settings
 
 User = get_user_model()
 
@@ -26,6 +27,7 @@ def health_check(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def create_admin(request):
+    """Endpoint to create a superuser (for development only)"""
     if not settings.DEBUG:
         return Response(
             {"error": "This endpoint is only available in development mode"},
@@ -72,10 +74,13 @@ class RegisterView(generics.CreateAPIView):
         if serializer.is_valid():
             user = serializer.save()
             Profile.objects.create(user=user)
-            return Response({
-                "message": "User registered successfully",
-                "user": serializer.data
-            }, status=status.HTTP_201_CREATED)
+            return Response(
+                {
+                    "message": "User registered successfully",
+                    "user": serializer.data
+                },
+                status=status.HTTP_201_CREATED
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class TodoViewSet(viewsets.ModelViewSet):
@@ -112,3 +117,14 @@ def getRoutes(request):
         {'endpoint': '/health/', 'methods': 'GET', 'description': 'Health check'},
     ]
     return Response(routes)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def task_summary(request):
+    tasks = Todo.objects.filter(user=request.user)
+    summary = {
+        'open': tasks.filter(status='Open').count(),
+        'in_progress': tasks.filter(status='In Progress').count(),
+        'done': tasks.filter(status='Done').count(),
+    }
+    return Response(summary, status=status.HTTP_200_OK)
