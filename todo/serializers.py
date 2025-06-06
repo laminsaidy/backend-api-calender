@@ -20,18 +20,28 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ['email', 'username']
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-    def validate(self, attrs):
-        data = super().validate(attrs)
-        data['user'] = UserSerializer(self.user).data
-        data['token'] = data.pop('access')
-        return data
-
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
+
+        # Add custom claims to the token
+        token['user_id'] = str(user.id)
         token['email'] = user.email
         token['username'] = user.username
+
         return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+
+        # Ensure consistent response format
+        data.update({
+            'token': data.pop('access'),  # Rename 'access' to 'token'
+            'refresh': data.get('refresh'),
+            'user': UserSerializer(self.user).data
+        })
+
+        return data
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
