@@ -1,4 +1,3 @@
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -12,7 +11,13 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import Profile, Todo
-from .serializers import UserProfileSerializer, UserSerializer, MyTokenObtainPairSerializer, RegisterSerializer, TodoSerializer
+from .serializers import (
+    UserProfileSerializer,
+    UserSerializer,
+    MyTokenObtainPairSerializer,
+    RegisterSerializer,
+    TodoSerializer
+)
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -25,7 +30,16 @@ def add_cors_headers(response):
     response["Access-Control-Allow-Credentials"] = "true"
     return response
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
 def create_admin(request):
+    """Endpoint to create a superuser (for development only)"""
+    if not settings.DEBUG:
+        return Response(
+            {"error": "This endpoint is only available in development mode"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
     try:
         if not User.objects.filter(email="admin@example.com").exists():
             User.objects.create_superuser(
@@ -33,10 +47,20 @@ def create_admin(request):
                 email="admin@example.com",
                 password="StrongAdminPass456"
             )
-            return JsonResponse({"message": "✅ Superuser created with email 'admin@example.com'"})
-        return JsonResponse({"message": "ℹ️ Superuser already exists."})
+            return Response(
+                {"message": "✅ Superuser created successfully"}, 
+                status=status.HTTP_201_CREATED
+            )
+        return Response(
+            {"message": "ℹ️ Superuser already exists"}, 
+            status=status.HTTP_200_OK
+        )
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        logger.error(f"Superuser creation error: {str(e)}", exc_info=True)
+        return Response(
+            {"error": str(e)}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
@@ -113,7 +137,10 @@ class TodoView(viewsets.ModelViewSet):
         new_status = request.data.get('status')
 
         if new_status not in dict(Todo.STATUS_CHOICES).keys():
-            return Response({'detail': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'Invalid status'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         task.status = new_status
         task.save()
@@ -172,7 +199,10 @@ def task_summary(request):
     }
     recent_tasks = tasks.order_by('-created_at')[:5]
     recent_tasks_serializer = TodoSerializer(recent_tasks, many=True)
-    return Response({'summary': summary, 'recentTasks': recent_tasks_serializer.data})
+    return Response(
+        {'summary': summary, 'recentTasks': recent_tasks_serializer.data},
+        status=status.HTTP_200_OK
+    )
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -207,6 +237,7 @@ def getRoutes(request):
         {'endpoint': '/api/tasks/statistics/', 'methods': 'GET', 'description': 'Tasks statistics'},
         {'endpoint': '/api/csrf/', 'methods': 'GET', 'description': 'Get CSRF token'},
         {'endpoint': '/api/profile/', 'methods': 'GET', 'description': 'User profile'},
+        {'endpoint': '/api/create-admin/', 'methods': 'POST', 'description': 'Create admin (dev only)'},
     ]
     return Response(routes)
 
