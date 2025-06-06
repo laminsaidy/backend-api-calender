@@ -23,8 +23,6 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
         refresh = self.get_token(self.user)
-        
-        # Include only user data in response (tokens are in cookies)
         return {
             'user': UserSerializer(self.user).data
         }
@@ -32,7 +30,6 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        # Add custom claims
         token['email'] = user.email
         token['username'] = user.username
         return token
@@ -77,7 +74,7 @@ class TodoSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     priority_display = serializers.CharField(source='get_priority_display', read_only=True)
     overdue = serializers.BooleanField(read_only=True)
-    user = serializers.PrimaryKeyRelatedField(read_only=True)  # Explicit read-only
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Todo

@@ -11,41 +11,25 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .models import Profile, Todo, User
-from .serializer import (
-    UserSerializer,
-    MyTokenObtainPairSerializer,
-    RegisterSerializer,
-    TodoSerializer,
-    UserProfileSerializer
-)
+from .models import Profile, Todo
+from .serializers import UserProfileSerializer, UserSerializer, MyTokenObtainPairSerializer, RegisterSerializer, TodoSerializer
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
 DEBUG = settings.DEBUG
 
-# -----------------------
-# HELPER FUNCTIONS
-# -----------------------
 def add_cors_headers(response):
-    """Add CORS headers to responses"""
     response["Access-Control-Allow-Origin"] = settings.FRONTEND_URL
     response["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
     response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-CSRFToken"
     response["Access-Control-Allow-Credentials"] = "true"
     return response
 
-# -----------------------
-# AUTHENTICATION VIEWS
-# -----------------------
-
-# Updated create_admin view with error handling
 def create_admin(request):
     try:
-        User = get_user_model()
         if not User.objects.filter(email="admin@example.com").exists():
             User.objects.create_superuser(
-                username="admin",  # Added username as required by AbstractUser
+                username="admin",
                 email="admin@example.com",
                 password="StrongAdminPass456"
             )
@@ -61,7 +45,6 @@ class MyTokenObtainPairView(TokenObtainPairView):
 @ensure_csrf_cookie
 @permission_classes([AllowAny])
 def get_csrf_token(request):
-    """Endpoint to get CSRF token"""
     response = Response({'message': 'CSRF cookie set'})
     return add_cors_headers(response)
 
@@ -72,8 +55,6 @@ class RegisterView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-
-        # Manually validate password confirmation
         password = request.data.get('password')
         password2 = request.data.get('password2')
 
@@ -86,8 +67,6 @@ class RegisterView(generics.CreateAPIView):
         try:
             serializer.is_valid(raise_exception=True)
             user = serializer.save()
-
-            # Ensure a Profile is created for the new User
             Profile.objects.get_or_create(user=user)
 
             return Response(
@@ -103,9 +82,6 @@ class RegisterView(generics.CreateAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-# -----------------------
-# TODO VIEWS
-# -----------------------
 class TodoView(viewsets.ModelViewSet):
     serializer_class = TodoSerializer
     permission_classes = [IsAuthenticated]
@@ -113,7 +89,6 @@ class TodoView(viewsets.ModelViewSet):
     filterset_fields = ['status', 'priority', 'category']
 
     def get_queryset(self):
-        """Filter tasks based on query parameters (status, priority, category)."""
         queryset = Todo.objects.filter(user=self.request.user).order_by('-due_date')
 
         status_filter = self.request.query_params.get('status', None)
@@ -144,9 +119,6 @@ class TodoView(viewsets.ModelViewSet):
         task.save()
         return Response(self.get_serializer(task).data)
 
-# -----------------------
-# PROFILE & UTILITY VIEWS
-# -----------------------
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def taskManager(request):
@@ -185,7 +157,6 @@ def get_user_profile(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_task(request, task_id):
-    """Retrieve a single task by ID"""
     task = get_object_or_404(Todo, id=task_id, user=request.user)
     serializer = TodoSerializer(task)
     return Response(serializer.data, status=status.HTTP_200_OK)
@@ -224,9 +195,6 @@ def view_statistics(request):
     }
     return Response(statistics, status=status.HTTP_200_OK)
 
-# -----------------------
-# DEBUG & TEST ROUTES
-# -----------------------
 @api_view(['GET'])
 def getRoutes(request):
     routes = [
