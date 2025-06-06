@@ -8,48 +8,38 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "fallback-secret-key-for-dev")
+# Security settings - Render will provide these
+SECRET_KEY = os.environ['SECRET_KEY']  # Required - set in Render dashboard
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
+# Render-specific settings
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 ALLOWED_HOSTS = [
     'calendar-backend.onrender.com',
     'calendar-frontend.onrender.com',
-    'localhost',
-    '127.0.0.1'
+    RENDER_EXTERNAL_HOSTNAME if RENDER_EXTERNAL_HOSTNAME else 'localhost'
 ]
 
-if RENDER_EXTERNAL_HOSTNAME := os.environ.get('RENDER_EXTERNAL_HOSTNAME'):
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+# Database configuration for Render
+DATABASES = {
+    'default': dj_database_url.config(
+        default=os.environ['DATABASE_URL'],  # Required - set in Render dashboard
+        conn_max_age=600,
+        conn_health_checks=True,
+        ssl_require=True
+    )
+}
 
-# Enhanced CORS settings
+# CORS settings
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://frontend-calendar-2rcv.onrender.com')
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://frontend-calendar-2rcv.onrender.com"
+    FRONTEND_URL,
+    "https://calendar-frontend.onrender.com"
 ]
-
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
-
-CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS.copy()
 
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://frontend-calendar-2rcv.onrender.com"
-]
-
+# Application definition
 INSTALLED_APPS = [
     'jazzmin',
     'corsheaders',
@@ -66,7 +56,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # For static files
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -78,6 +68,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'backend.urls'
 
+# Templates and WSGI remain unchanged
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -93,16 +84,9 @@ TEMPLATES = [
         },
     },
 ]
-
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL', f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
-        conn_max_age=600
-    )
-}
-
+# Password validation remains unchanged
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -118,17 +102,21 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Internationalization remains unchanged
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+# Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# REST Framework configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -138,7 +126,7 @@ REST_FRAMEWORK = {
     ]
 }
 
-# Updated JWT Configuration
+# JWT Configuration (unchanged)
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
@@ -162,9 +150,18 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
 
+# Security settings
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SAMESITE = 'Lax'
+
+# Production security headers
+if not DEBUG:
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
