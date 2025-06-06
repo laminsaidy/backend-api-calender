@@ -3,13 +3,11 @@ from django.contrib.auth import get_user_model
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.conf import settings
 import logging
-
 from rest_framework import generics, status, viewsets
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
-
 from .models import Profile, Todo
 from .serializers import (
     UserProfileSerializer,
@@ -33,7 +31,6 @@ def add_cors_headers(response):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def create_admin(request):
-    """Endpoint to create a superuser (for development only)"""
     if not settings.DEBUG:
         return Response(
             {"error": "This endpoint is only available in development mode"},
@@ -48,17 +45,17 @@ def create_admin(request):
                 password="StrongAdminPass456"
             )
             return Response(
-                {"message": "✅ Superuser created successfully"}, 
+                {"message": "✅ Superuser created successfully"},
                 status=status.HTTP_201_CREATED
             )
         return Response(
-            {"message": "ℹ️ Superuser already exists"}, 
+            {"message": "ℹ️ Superuser already exists"},
             status=status.HTTP_200_OK
         )
     except Exception as e:
         logger.error(f"Superuser creation error: {str(e)}", exc_info=True)
         return Response(
-            {"error": str(e)}, 
+            {"error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -109,42 +106,30 @@ class RegisterView(generics.CreateAPIView):
 class TodoView(viewsets.ModelViewSet):
     serializer_class = TodoSerializer
     permission_classes = [IsAuthenticated]
-    ordering_fields = ['due_date', 'created_at', 'priority']
-    filterset_fields = ['status', 'priority', 'category']
 
     def get_queryset(self):
-        queryset = Todo.objects.filter(user=self.request.user).order_by('-due_date')
-
-        status_filter = self.request.query_params.get('status', None)
-        priority_filter = self.request.query_params.get('priority', None)
-        category_filter = self.request.query_params.get('category', None)
-
-        if status_filter:
-            queryset = queryset.filter(status=status_filter)
-        if priority_filter:
-            queryset = queryset.filter(priority=priority_filter)
-        if category_filter:
-            queryset = queryset.filter(category=category_filter)
-
-        return queryset
+        return Todo.objects.filter(user=self.request.user).order_by('-due_date')
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        try:
+            serializer.save(user=self.request.user)
+        except Exception as e:
+            logger.error(f"Task creation error: {str(e)}", exc_info=True)
+            raise
 
-    @action(detail=True, methods=['patch'])
-    def update_status(self, request, pk=None):
-        task = self.get_object()
-        new_status = request.data.get('status')
-
-        if new_status not in dict(Todo.STATUS_CHOICES).keys():
-            return Response(
-                {'detail': 'Invalid status'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        task.status = new_status
-        task.save()
-        return Response(self.get_serializer(task).data)
+    @action(detail=False, methods=['post'])
+    def add_task(self, request):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                serializer.save(user=request.user)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response(
+                    {"error": str(e)},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -203,27 +188,6 @@ def task_summary(request):
         {'summary': summary, 'recentTasks': recent_tasks_serializer.data},
         status=status.HTTP_200_OK
     )
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def add_task(request):
-    serializer = TodoSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save(user=request.user)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def view_statistics(request):
-    tasks = Todo.objects.filter(user=request.user)
-    statistics = {
-        'total_tasks': tasks.count(),
-        'open_tasks': tasks.filter(status='Open').count(),
-        'in_progress_tasks': tasks.filter(status='In Progress').count(),
-        'done_tasks': tasks.filter(status='Done').count(),
-    }
-    return Response(statistics, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def getRoutes(request):

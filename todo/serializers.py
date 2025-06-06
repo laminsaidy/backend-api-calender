@@ -21,24 +21,14 @@ class UserSerializer(serializers.ModelSerializer):
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
-        # Get the default token response (access + refresh)
         data = super().validate(attrs)
-        
-        # Add user data to the response
         data['user'] = UserSerializer(self.user).data
-        
-        # Rename 'access' to 'token' for frontend compatibility
         data['token'] = data.pop('access')
-        
-        # Remove refresh token if not needed by frontend
-        # data.pop('refresh', None)
-        
         return data
 
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        # Add custom claims
         token['email'] = user.email
         token['username'] = user.username
         return token
@@ -76,14 +66,13 @@ class RegisterSerializer(serializers.ModelSerializer):
             username=validated_data['username'],
             password=validated_data['password']
         )
-        Profile.objects.get_or_create(user=user)  # Ensure profile is created
+        Profile.objects.get_or_create(user=user)
         return user
 
 class TodoSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     priority_display = serializers.CharField(source='get_priority_display', read_only=True)
-    overdue = serializers.BooleanField(read_only=True)
-    user = serializers.PrimaryKeyRelatedField(read_only=True)
+    overdue = serializers.SerializerMethodField()
 
     class Meta:
         model = Todo
@@ -93,6 +82,9 @@ class TodoSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at', 'overdue', 'user'
         ]
         read_only_fields = ['user', 'created_at', 'updated_at', 'overdue']
+
+    def get_overdue(self, obj):
+        return obj.is_overdue
 
     def validate_status(self, value):
         if value not in dict(Todo.STATUS_CHOICES).keys():
