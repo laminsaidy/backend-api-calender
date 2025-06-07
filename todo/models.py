@@ -1,35 +1,16 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-class User(AbstractUser):
-    email = models.EmailField(unique=True, verbose_name='email address')
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username']
-
-    def __str__(self):
-        return self.email
-
-    class Meta:
-        verbose_name = 'User'
-        verbose_name_plural = 'Users'
-        ordering = ['email']
+User = get_user_model()
 
 class Profile(models.Model):
-    user = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        related_name='profile'
-    )
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile', null=True, blank=True)
     full_name = models.CharField(max_length=100, blank=True)
     bio = models.TextField(max_length=500, blank=True)
-    image = models.ImageField(
-        upload_to="user_images/",
-        default="default.jpg",
-        verbose_name='profile image'
-    )
+    image = models.ImageField(upload_to="user_images/", default="default.jpg", verbose_name='profile image')
     verified = models.BooleanField(default=False)
 
     def __str__(self):
@@ -41,7 +22,6 @@ class Profile(models.Model):
 
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
-    """Signal to automatically create profile when user is created"""
     if created:
         Profile.objects.get_or_create(user=instance)
 
@@ -58,29 +38,12 @@ class Todo(models.Model):
         ('Done', 'Done'),
     ]
 
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='todos',
-        help_text="The user this todo item belongs to"
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='todos', help_text="The user this todo item belongs to", null=True, blank=True)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default='Open'
-    )
-    priority = models.CharField(
-        max_length=10,
-        choices=PRIORITY_CHOICES,
-        default='Medium'
-    )
-    category = models.CharField(
-        max_length=20,
-        blank=True,
-        null=True
-    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Open')
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='Medium')
+    category = models.CharField(max_length=20, blank=True, null=True)
     due_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
@@ -98,7 +61,6 @@ class Todo(models.Model):
 
     @property
     def is_overdue(self):
-        """Check if task is past due date and not completed"""
         return (
             self.due_date and
             self.due_date < timezone.now().date() and

@@ -2,17 +2,19 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import Todo, Profile
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 User = get_user_model()
 
-class UserProfileSerializer(serializers.ModelSerializer):
+class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ['full_name', 'bio', 'image', 'verified']
         read_only_fields = ['verified']
 
 class UserSerializer(serializers.ModelSerializer):
-    profile = UserProfileSerializer(read_only=True)
+    profile = ProfileSerializer(read_only=True)
 
     class Meta:
         model = User
@@ -20,36 +22,29 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ['email', 'username']
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-    def validate(self, attrs):
-        # Get the default token response (access + refresh)
-        data = super().validate(attrs)
-        
-        # Add user data to the response
-        data['user'] = UserSerializer(self.user).data
-        
-        # Rename 'access' to 'token' for frontend compatibility
-        data['token'] = data.pop('access')
-        
-        # Remove refresh token if not needed by frontend
-        # data.pop('refresh', None)
-        
-        return data
-
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        # Add custom claims
+        token['user_id'] = str(user.id)
         token['email'] = user.email
         token['username'] = user.username
         return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data.update({
+            'token': data.pop('access'),
+            'refresh': data.get('refresh'),
+            'user': UserSerializer(self.user).data
+        })
+        return data
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True,
         required=True,
-        style={'input_type': 'password'},
         min_length=8,
-        max_length=128
+        style={'input_type': 'password'}
     )
     password2 = serializers.CharField(
         write_only=True,
@@ -65,9 +60,28 @@ class RegisterSerializer(serializers.ModelSerializer):
             'username': {'required': True}
         }
 
+    def validate_email(self, value):
+        try:
+            validate_email(value)
+        except ValidationError:
+            raise serializers.ValidationError("Enter a valid email address")
+        
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("This email is already in use")
+        return value
+
+    def validate_username(self, value):
+        if len(value) < 3:
+            raise serializers.ValidationError("Username must be at least 3 characters")
+        if User.objects.filter(username__iexact=value).exists():
+            raise serializers.ValidationError("This username is already taken")
+        return value
+
     def validate(self, data):
         if data['password'] != data['password2']:
-            raise serializers.ValidationError({"password": "Passwords do not match."})
+            raise serializers.ValidationError({
+                "password2": "Passwords do not match"
+            })
         return data
 
     def create(self, validated_data):
@@ -76,14 +90,13 @@ class RegisterSerializer(serializers.ModelSerializer):
             username=validated_data['username'],
             password=validated_data['password']
         )
-        Profile.objects.get_or_create(user=user)  # Ensure profile is created
+        Profile.objects.create(user=user)
         return user
 
 class TodoSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     priority_display = serializers.CharField(source='get_priority_display', read_only=True)
-    overdue = serializers.BooleanField(read_only=True)
-    user = serializers.PrimaryKeyRelatedField(read_only=True)
+    overdue = serializers.SerializerMethodField()
 
     class Meta:
         model = Todo
@@ -93,6 +106,9 @@ class TodoSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at', 'overdue', 'user'
         ]
         read_only_fields = ['user', 'created_at', 'updated_at', 'overdue']
+
+    def get_overdue(self, obj):
+        return obj.is_overdue
 
     def validate_status(self, value):
         if value not in dict(Todo.STATUS_CHOICES).keys():
