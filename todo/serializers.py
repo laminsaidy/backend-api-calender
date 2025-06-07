@@ -7,6 +7,38 @@ from django.core.exceptions import ValidationError
 
 User = get_user_model()
 
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ['full_name', 'bio', 'image', 'verified']
+        read_only_fields = ['verified']
+
+class UserSerializer(serializers.ModelSerializer):
+    profile = ProfileSerializer(read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'username', 'profile']
+        read_only_fields = ['email', 'username']
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['user_id'] = str(user.id)
+        token['email'] = user.email
+        token['username'] = user.username
+        return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data.update({
+            'token': data.pop('access'),
+            'refresh': data.get('refresh'),
+            'user': UserSerializer(self.user).data
+        })
+        return data
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True,
@@ -61,16 +93,29 @@ class RegisterSerializer(serializers.ModelSerializer):
         Profile.objects.create(user=user)
         return user
 
-class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-    def validate(self, attrs):
-        data = super().validate(attrs)
-        
-        # Add custom response data
-        data.update({
-            'user': {
-                'id': self.user.id,
-                'email': self.user.email,
-                'username': self.user.username
-            }
-        })
-        return data
+class TodoSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    priority_display = serializers.CharField(source='get_priority_display', read_only=True)
+    overdue = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Todo
+        fields = [
+            'id', 'title', 'description', 'status', 'status_display',
+            'priority', 'priority_display', 'category', 'due_date',
+            'created_at', 'updated_at', 'overdue', 'user'
+        ]
+        read_only_fields = ['user', 'created_at', 'updated_at', 'overdue']
+
+    def get_overdue(self, obj):
+        return obj.is_overdue
+
+    def validate_status(self, value):
+        if value not in dict(Todo.STATUS_CHOICES).keys():
+            raise serializers.ValidationError("Invalid status value")
+        return value
+
+    def validate_priority(self, value):
+        if value not in dict(Todo.PRIORITY_CHOICES).keys():
+            raise serializers.ValidationError("Invalid priority value")
+        return value
