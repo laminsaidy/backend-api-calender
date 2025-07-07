@@ -20,14 +20,26 @@ ALLOWED_HOSTS = [
 ]
 
 # Database configuration
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ['DATABASE_URL'],
-        conn_max_age=600,
-        conn_health_checks=True,
-        ssl_require=True
-    )
-}
+DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///db.sqlite3')
+
+if DATABASE_URL.startswith('postgres'):
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+            # ssl_require removed
+        )
+    }
+else:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+            # no ssl_require here either
+        )
+    }
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
