@@ -22,6 +22,9 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ['email', 'username']
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    # Set username_field explicitly to email
+    username_field = User.EMAIL_FIELD  # usually 'email'
+
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
