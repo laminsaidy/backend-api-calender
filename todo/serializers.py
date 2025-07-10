@@ -22,8 +22,7 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ['email', 'username']
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-    # Set username_field explicitly to email
-    username_field = User.EMAIL_FIELD  # usually 'email'
+    username_field = 'username'  # Use 'username' instead of email
 
     @classmethod
     def get_token(cls, user):
@@ -68,7 +67,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             validate_email(value)
         except ValidationError:
             raise serializers.ValidationError("Enter a valid email address")
-        
+
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError("This email is already in use")
         return value

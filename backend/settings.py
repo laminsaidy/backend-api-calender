@@ -1,7 +1,6 @@
 ﻿import os
 from pathlib import Path
 from datetime import timedelta
-import dj_database_url
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -9,14 +8,21 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security settings
-SECRET_KEY = os.environ['SECRET_KEY']
-DEBUG = True  # Force debug mode for local development
+SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-for-dev')
+DEBUG = True
 
 # Allowed hosts
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    'literate-funicular-9pw5p9gp5rwcp47q-8000.app.github.dev'
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+
+# CORS settings
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
 ]
 
 # Database configuration
@@ -26,21 +32,6 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
-# CORS settings
-CORS_ALLOWED_ORIGINS = [
-    "https://literate-funicular-9pw5p9gp5rwcp47q-3000.app.github.dev",  # Frontend in codespaces
-    "https://literate-funicular-9pw5p9gp5rwcp47q-8000.app.github.dev",  # Backend in codespaces
-]
-
-CORS_ALLOW_CREDENTIALS = True
-
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://literate-funicular-9pw5p9gp5rwcp47q-3000.app.github.dev",
-]
-
 
 # Cookie settings for local development
 SESSION_COOKIE_SECURE = False

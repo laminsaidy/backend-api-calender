@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import Profile, Todo
 from .serializers import (
-    ProfileSerializer,  # Changed from UserProfileSerializer
+    ProfileSerializer,
     UserSerializer,
     MyTokenObtainPairSerializer,
     RegisterSerializer,
@@ -43,7 +43,7 @@ def create_admin(request):
                 {"message": "Superuser already exists"},
                 status=status.HTTP_200_OK
             )
-            
+
         User.objects.create_superuser(
             username="admin",
             email="admin@example.com",
@@ -53,7 +53,7 @@ def create_admin(request):
             {"message": "Superuser created successfully"},
             status=status.HTTP_201_CREATED
         )
-        
+
     except Exception as e:
         return Response(
             {"error": str(e)},
@@ -70,7 +70,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
 def get_csrf_token(request):
     """Endpoint to get CSRF token for forms"""
     return Response(
-        {'message': 'CSRF cookie set'}, 
+        {'message': 'CSRF cookie set'},
         status=status.HTTP_200_OK
     )
 
@@ -82,12 +82,12 @@ class RegisterView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        
+
         try:
             serializer.is_valid(raise_exception=True)
             user = serializer.save()
             Profile.objects.create(user=user)
-            
+
             return Response({
                 "status": "success",
                 "message": "User registered successfully",
@@ -99,7 +99,7 @@ class RegisterView(generics.CreateAPIView):
                     }
                 }
             }, status=status.HTTP_201_CREATED)
-            
+
         except Exception as e:
             return Response({
                 "status": "error",
@@ -126,7 +126,7 @@ def get_user_profile(request):
     """Get profile data for authenticated user"""
     try:
         profile = request.user.profile
-        serializer = ProfileSerializer(profile)  # Updated serializer name
+        serializer = ProfileSerializer(profile)
         return Response(
             {"status": "success", "data": serializer.data},
             status=status.HTTP_200_OK
@@ -148,43 +148,43 @@ def getRoutes(request):
     routes = [
         {
             'endpoint': '/api/token/',
-            'methods': 'POST', 
+            'methods': 'POST',
             'description': 'Obtain JWT token pair',
             'authentication': False
         },
         {
             'endpoint': '/api/token/refresh/',
-            'methods': 'POST', 
+            'methods': 'POST',
             'description': 'Refresh JWT token',
             'authentication': False
         },
         {
             'endpoint': '/api/register/',
-            'methods': 'POST', 
+            'methods': 'POST',
             'description': 'Register new user',
             'authentication': False
         },
         {
             'endpoint': '/api/todos/',
-            'methods': 'GET,POST', 
+            'methods': 'GET,POST',
             'description': 'List/create todos',
             'authentication': True
         },
         {
             'endpoint': '/api/todos/<id>/',
-            'methods': 'GET,PUT,PATCH,DELETE', 
+            'methods': 'GET,PUT,PATCH,DELETE',
             'description': 'Retrieve/update/delete todo',
             'authentication': True
         },
         {
             'endpoint': '/api/profile/',
-            'methods': 'GET', 
+            'methods': 'GET',
             'description': 'Get user profile',
             'authentication': True
         },
         {
             'endpoint': '/health/',
-            'methods': 'GET', 
+            'methods': 'GET',
             'description': 'Service health check',
             'authentication': False
         }
@@ -199,7 +199,7 @@ def getRoutes(request):
 def task_summary(request):
     """Get summary statistics for user's todos"""
     tasks = Todo.objects.filter(user=request.user)
-    
+
     summary = {
         'total': tasks.count(),
         'open': tasks.filter(status='Open').count(),
@@ -207,7 +207,7 @@ def task_summary(request):
         'done': tasks.filter(status='Done').count(),
         'overdue': tasks.filter(due_date__lt=timezone.now(), status__in=['Open', 'In Progress']).count()
     }
-    
+
     return Response(
         {"status": "success", "data": summary},
         status=status.HTTP_200_OK
