@@ -212,3 +212,14 @@ def task_summary(request):
         {"status": "success", "data": summary},
         status=status.HTTP_200_OK
     )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_authenticated_user(request):
+    """Return authenticated user data"""
+    user = request.user
+    serializer = UserSerializer(user)
+    return Response(
+        {"status": "success", "data": serializer.data},
+        status=status.HTTP_200_OK
+    )

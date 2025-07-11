@@ -7,12 +7,22 @@ router = DefaultRouter()
 router.register(r'tasks', views.TodoViewSet, basename='task')
 
 urlpatterns = [
+    # Auth & registration
     path('token/', views.MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('register/', views.RegisterView.as_view(), name='register'),
-    path('todos/summary/', views.task_summary, name='task_summary'),
     path('create-admin/', views.create_admin, name='create_admin'),
-    path('routes/', views.getRoutes, name='api_routes'),
+
+    # User & profile
+    path('user/', views.get_authenticated_user, name='get_authenticated_user'),  
+    path('profile/', views.get_user_profile, name='get_user_profile'),
+
+    # Todos
+    path('todos/summary/', views.task_summary, name='task_summary'),
     path('', include(router.urls)),
+
+    # Misc
+    path('routes/', views.getRoutes, name='api_routes'),
+    path('csrf/', views.get_csrf_token, name='get_csrf_token'),
 ]
