@@ -87,12 +87,9 @@ class RegisterSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        user = User.objects.create_user(
-            email=validated_data['email'],
-            username=validated_data['username'],
-            password=validated_data['password']
-        )
-        Profile.objects.create(user=user)
+        # Remove password2 before creating user
+        validated_data.pop('password2')
+        user = User.objects.create_user(**validated_data)
         return user
 
 class TodoSerializer(serializers.ModelSerializer):

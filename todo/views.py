@@ -86,7 +86,9 @@ class RegisterView(generics.CreateAPIView):
         try:
             serializer.is_valid(raise_exception=True)
             user = serializer.save()
-            Profile.objects.create(user=user)
+
+            # Safely create a profile only if one doesn't exist
+            Profile.objects.get_or_create(user=user)
 
             return Response({
                 "status": "success",
