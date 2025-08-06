@@ -6,6 +6,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.exceptions import PermissionDenied
+from django.utils import timezone
 from .models import Profile, Todo
 from .serializers import (
     ProfileSerializer,
@@ -36,14 +38,12 @@ def create_admin(request):
             {"error": "This endpoint is only available in development mode"},
             status=status.HTTP_403_FORBIDDEN
         )
-
     try:
         if User.objects.filter(email="admin@example.com").exists():
             return Response(
                 {"message": "Superuser already exists"},
                 status=status.HTTP_200_OK
             )
-
         User.objects.create_superuser(
             username="admin",
             email="admin@example.com",
@@ -53,7 +53,6 @@ def create_admin(request):
             {"message": "Superuser created successfully"},
             status=status.HTTP_201_CREATED
         )
-
     except Exception as e:
         return Response(
             {"error": str(e)},
@@ -82,14 +81,11 @@ class RegisterView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-
         try:
             serializer.is_valid(raise_exception=True)
             user = serializer.save()
-
             # Safely create a profile only if one doesn't exist
             Profile.objects.get_or_create(user=user)
-
             return Response({
                 "status": "success",
                 "message": "User registered successfully",
@@ -101,7 +97,6 @@ class RegisterView(generics.CreateAPIView):
                     }
                 }
             }, status=status.HTTP_201_CREATED)
-
         except Exception as e:
             return Response({
                 "status": "error",
@@ -121,6 +116,13 @@ class TodoViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Automatically set the current user as todo owner"""
         serializer.save(user=self.request.user)
+
+    def get_object(self):
+        """Ensure users can only access their own tasks."""
+        obj = super().get_object()
+        if obj.user != self.request.user:
+            raise PermissionDenied("You do not have permission to view this task.")
+        return obj
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -201,7 +203,6 @@ def getRoutes(request):
 def task_summary(request):
     """Get summary statistics for user's todos"""
     tasks = Todo.objects.filter(user=request.user)
-
     summary = {
         'total': tasks.count(),
         'open': tasks.filter(status='Open').count(),
@@ -209,7 +210,6 @@ def task_summary(request):
         'done': tasks.filter(status='Done').count(),
         'overdue': tasks.filter(due_date__lt=timezone.now(), status__in=['Open', 'In Progress']).count()
     }
-
     return Response(
         {"status": "success", "data": summary},
         status=status.HTTP_200_OK
