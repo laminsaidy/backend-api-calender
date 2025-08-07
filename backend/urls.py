@@ -7,7 +7,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView
 )
-from django.shortcuts import redirect 
+from django.shortcuts import redirect
 
 urlpatterns = [
     path('', lambda request: redirect('admin/', permanent=False)),  
