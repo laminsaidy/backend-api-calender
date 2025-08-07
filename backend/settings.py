@@ -17,7 +17,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-for-dev')
 if ENVIRONMENT == 'production':
     DEBUG = False
     ALLOWED_HOSTS = ['backend-render-api-calender.onrender.com']
-    CSRF_TRUSTED_ORIGINS = ['https://your-frontend.onrender.com']
+    CSRF_TRUSTED_ORIGINS = ['https://frontend-calendar-2rcv.onrender.com']
 
     DATABASES = {
         'default': dj_database_url.config(
