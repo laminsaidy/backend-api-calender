@@ -22,8 +22,6 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ['email', 'username']
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-    username_field = 'username'  # Use 'username' instead of email
-
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
@@ -35,8 +33,6 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
         data.update({
-            'token': data.pop('access'),
-            'refresh': data.get('refresh'),
             'user': UserSerializer(self.user).data
         })
         return data
@@ -67,7 +63,6 @@ class RegisterSerializer(serializers.ModelSerializer):
             validate_email(value)
         except ValidationError:
             raise serializers.ValidationError("Enter a valid email address")
-
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError("This email is already in use")
         return value
@@ -87,7 +82,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        # Remove password2 before creating user
         validated_data.pop('password2')
         user = User.objects.create_user(**validated_data)
         return user

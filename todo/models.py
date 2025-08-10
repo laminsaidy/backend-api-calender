@@ -31,7 +31,6 @@ class Todo(models.Model):
         ('Medium', 'Medium'),
         ('High', 'High'),
     ]
-
     STATUS_CHOICES = [
         ('Open', 'Open'),
         ('In Progress', 'In Progress'),
