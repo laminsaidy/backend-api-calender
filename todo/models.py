@@ -51,6 +51,7 @@ class Todo(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Open')
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='Medium')
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='Work')
+    custom_category = models.CharField(max_length=50, blank=True, null=True)  # <-- added
     due_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
@@ -76,3 +77,4 @@ class Todo(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.status})"
+

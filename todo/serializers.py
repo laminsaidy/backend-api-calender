@@ -93,8 +93,8 @@ class TodoSerializer(serializers.ModelSerializer):
         model = Todo
         fields = [
             'id', 'title', 'description', 'status', 'status_display',
-            'priority', 'priority_display', 'category', 'due_date',
-            'created_at', 'updated_at', 'overdue', 'user'
+            'priority', 'priority_display', 'category', 'custom_category',  # <-- added here
+            'due_date', 'created_at', 'updated_at', 'overdue', 'user'
         ]
         read_only_fields = ['user', 'created_at', 'updated_at', 'overdue']
 
@@ -109,9 +109,4 @@ class TodoSerializer(serializers.ModelSerializer):
     def validate_priority(self, value):
         if value not in dict(Todo.PRIORITY_CHOICES).keys():
             raise serializers.ValidationError("Invalid priority value")
-        return value
-
-    def validate_category(self, value):
-        if value not in dict(Todo.CATEGORY_CHOICES).keys() and value != "Other":
-            raise serializers.ValidationError("Invalid category value")
         return value
