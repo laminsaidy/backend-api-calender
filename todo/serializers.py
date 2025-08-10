@@ -2,8 +2,6 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import Todo, Profile
-from django.core.validators import validate_email
-from django.core.exceptions import ValidationError
 
 User = get_user_model()
 
@@ -111,4 +109,9 @@ class TodoSerializer(serializers.ModelSerializer):
     def validate_priority(self, value):
         if value not in dict(Todo.PRIORITY_CHOICES).keys():
             raise serializers.ValidationError("Invalid priority value")
+        return value
+
+    def validate_category(self, value):
+        if value not in dict(Todo.CATEGORY_CHOICES).keys() and value != "Other":
+            raise serializers.ValidationError("Invalid category value")
         return value

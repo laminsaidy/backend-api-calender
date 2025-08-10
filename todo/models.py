@@ -31,10 +31,18 @@ class Todo(models.Model):
         ('Medium', 'Medium'),
         ('High', 'High'),
     ]
+
     STATUS_CHOICES = [
         ('Open', 'Open'),
         ('In Progress', 'In Progress'),
         ('Done', 'Done'),
+    ]
+
+    CATEGORY_CHOICES = [
+        ('Work', 'Work'),
+        ('Personal', 'Personal'),
+        ('Urgent', 'Urgent'),
+        ('Other', 'Other'),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='todos', help_text="The user this todo item belongs to", null=True, blank=True)
@@ -42,7 +50,7 @@ class Todo(models.Model):
     description = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Open')
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='Medium')
-    category = models.CharField(max_length=20, blank=True, null=True)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='Work')
     due_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
