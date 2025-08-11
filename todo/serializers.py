@@ -84,16 +84,18 @@ class RegisterSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         return user
 
+
+
 class TodoSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     priority_display = serializers.CharField(source='get_priority_display', read_only=True)
     overdue = serializers.SerializerMethodField()
-
+    
     class Meta:
         model = Todo
         fields = [
             'id', 'title', 'description', 'status', 'status_display',
-            'priority', 'priority_display', 'category', 'custom_category',  # <-- added here
+            'priority', 'priority_display', 'category', 'custom_category',
             'due_date', 'created_at', 'updated_at', 'overdue', 'user'
         ]
         read_only_fields = ['user', 'created_at', 'updated_at', 'overdue']
@@ -110,3 +112,17 @@ class TodoSerializer(serializers.ModelSerializer):
         if value not in dict(Todo.PRIORITY_CHOICES).keys():
             raise serializers.ValidationError("Invalid priority value")
         return value
+
+    def validate_category(self, value):
+        """New validation for category field"""
+        if value not in dict(Todo.CATEGORY_CHOICES).keys():
+            raise serializers.ValidationError("Invalid category value")
+        return value
+
+    def validate(self, data):
+        """Validate custom_category when 'Other' is selected"""
+        if data.get('category') == 'Other' and not data.get('custom_category'):
+            raise serializers.ValidationError({
+                "custom_category": "Custom category is required when 'Other' is selected"
+            })
+        return data
